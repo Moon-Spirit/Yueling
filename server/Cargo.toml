@@ -12,7 +12,7 @@ uuid = { version = "1.19.0", features = ["v4"] }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.75"
 bcrypt = "0.17.1"
-rusqlite = "0.37.0"
+rusqlite = { version = "0.37.0", features = ["bundled"] }
 serde = "1.0.228"
 axum = "0.8.7"
 tower-http = "0.6.8"
