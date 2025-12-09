@@ -1,30 +1,14 @@
+mod api;
+mod storage;
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write};
 use std::thread;
 use axum::{Router, routing::post};
-use sqlite::Connection;
+use rusqlite::Connection;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-//全局应用状态
-#[derive(Clone)]
-struct AppState {
-    db_conn: Arc<Connection>,
-}
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-     //初始化数据库
-     let db_path = "server.db";
-     let conn = Connection::open(db_path)?;
-     storage::user::init_db(&conn)?;
-     //构造全局状态
-     let state =AppState {
-         db_conn: Arc::new(conn),
-     };
-     //构造路由(注册接口绑定到处理函数)
-     let app = Router::new()
-         .route("/register", post(api::auth::register_handler))
-         .with_state(state);
-         
+
+fn main(){      
      let port = 2025;
      println!("Starting chat server on port {}", port);
 
