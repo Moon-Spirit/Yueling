@@ -1852,6 +1852,7 @@ dependencies = [
  "quinn",
  "rcgen",
  "sqlite",
+ "thiserror 2.0.17",
  "tokio",
  "uuid",
 ]
