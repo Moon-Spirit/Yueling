@@ -1,14 +1,37 @@
 use axum::{
-    extract::State,
-    http::StatusCode,
+    extract::{State, ws::WebSocketUpgrade, ws::Message, ws::WebSocket},
     response::Json,
-    routing::post,
+    routing::{get, post},
     Router,
 };
 use serde::{Deserialize, Serialize};
 use crate::storage::DbPool;
 use crate::error::AppError;
 use bcrypt::verify;
+use futures_util::{SinkExt, StreamExt};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tokio::sync::broadcast;
+use uuid::Uuid;
+
+// 共享应用状态
+#[derive(Clone)]
+pub struct AppState {
+    pub db_pool: DbPool,
+    clients: Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>,
+    broadcaster: broadcast::Sender<String>,
+}
+
+impl AppState {
+    pub fn new(db_pool: DbPool) -> Self {
+        let (broadcaster, _) = broadcast::channel(100);
+        Self {
+            db_pool,
+            clients: Arc::new(Mutex::new(HashMap::new())),
+            broadcaster,
+        }
+    }
+}
 
 // 注册请求体（前端提交数据）
 #[derive(Deserialize)]
@@ -41,13 +64,73 @@ pub struct LoginResponse {
     pub username: Option<String>, // 成功时返回用户名
 }
 
+// WebSocket处理器
+// WebSocket处理器
+async fn ws_handler(
+    upgrade: WebSocketUpgrade,
+    State(state): State<AppState>,
+) -> impl axum::response::IntoResponse {
+    upgrade.on_upgrade(|socket| handle_socket(socket, state))
+}
+
+// 处理WebSocket连接
+async fn handle_socket(socket: WebSocket, state: AppState) {
+    let (mut sender, mut receiver) = socket.split();
+    let client_id = Uuid::new_v4().to_string();
+    
+    // 创建客户端专用通道
+    let (client_tx, mut client_rx) = broadcast::channel(100);
+    
+    // 将客户端添加到状态
+    state.clients.lock().unwrap().insert(client_id.clone(), client_tx.clone());
+    println!("New WebSocket client connected: {}", client_id);
+    
+    // 广播新客户端连接
+    let _ = state.broadcaster.send(format!("Client {} joined", client_id));
+
+    // 处理接收消息
+    let state_clone = state.clone();
+    let client_id_clone = client_id.clone();
+    let recv_task = tokio::spawn(async move {
+        while let Some(Ok(msg)) = receiver.next().await {
+            if let Message::Text(text) = msg {
+                println!("Received from {}: {}", client_id_clone, text);
+                // 广播消息给所有客户端
+                let _ = state_clone.broadcaster.send(format!("{}: {}", client_id_clone, text));
+            }
+        }
+    });
+    
+    // 处理发送消息
+    let send_task = tokio::spawn(async move {
+        while let Ok(msg) = client_rx.recv().await {
+            if sender.send(Message::Text(msg.into())).await.is_err() {
+                break;
+            }
+        }
+    });
+    
+    // 等待任一任务结束
+    tokio::select! {
+        _ = recv_task => (),
+        _ = send_task => (),
+    }
+    
+    // 移除客户端
+    state.clients.lock().unwrap().remove(&client_id);
+    println!("WebSocket client disconnected: {}", client_id);
+    
+    // 广播客户端断开连接
+    let _ = state.broadcaster.send(format!("Client {} left", client_id));
+}
+
 // 注册处理器（核心API逻辑）
 pub async fn register_handler(
-    State(pool): State<DbPool>, // 注入数据库连接池
+    State(state): State<AppState>, // 注入共享状态
     Json(req): Json<RegisterRequest>, // 解析JSON请求体
 ) -> Result<Json<RegisterResponse>, AppError> {
     // 调用存储层注册用户
-    let user = pool.register_user(&req.username, "", &req.password)
+    let user = state.db_pool.register_user(&req.username, "", &req.password)
         .map_err(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => 
                 AppError::UserExists("用户名已被注册".into()),
@@ -64,13 +147,11 @@ pub async fn register_handler(
 
 // 登录处理器（核心API逻辑）
 pub async fn login_handler(
-    State(pool): State<DbPool>, // 注入数据库连接池
+    State(state): State<AppState>, // 注入共享状态
     Json(req): Json<LoginRequest>, // 解析JSON请求体
 ) -> Result<Json<LoginResponse>, AppError> {
     // 调用存储层获取用户
-    // 注意：这里应该使用存储层提供的方法，而不是直接访问内部字段
-    // 但为了快速修复，我们暂时修改DbPool结构体，使其内部字段可访问
-    let conn = pool.0.lock().unwrap();
+    let conn = state.db_pool.0.lock().unwrap();
     let user = conn.query_row(
         "SELECT id, username, password_hash FROM users WHERE username = ?",
         [&req.username],
@@ -103,8 +184,13 @@ pub async fn login_handler(
 }
 
 // 导出路由
-pub fn register_routes() -> Router<DbPool> {
+pub fn register_routes(db_pool: DbPool) -> Router {
+    // 创建共享应用状态
+    let app_state = AppState::new(db_pool);
+    
     Router::new()
         .route("/register", post(register_handler))
         .route("/login", post(login_handler))
+        .route("/ws", get(ws_handler))
+        .with_state(app_state)
 }

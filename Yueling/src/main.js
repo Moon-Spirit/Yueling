@@ -5,8 +5,13 @@ let isConnected = false;
 let currentChatContact = null;
 
 // API配置
-const API_BASE_URL = 'http://localhost:2025';
-const WS_URL = 'ws://localhost:2026';
+const API_CONFIG = {
+    tcp: {
+        baseUrl: 'http://localhost:2025',
+        wsUrl: 'ws://localhost:2026'
+    },
+    currentProtocol: 'tcp' // 统一使用TCP协议
+};
 
 // DOM元素
 let loginContainer;
@@ -194,14 +199,14 @@ async function handleLogin(e) {
     const password = document.getElementById('login-password').value;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/login`, {
+        // 统一使用TCP协议
+        const response = await fetch(`${API_CONFIG.tcp.baseUrl}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ username, password }),
         });
-        
         const result = await response.json();
         
         if (result.success) {
@@ -240,14 +245,14 @@ async function handleRegister(e) {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/register`, {
+        // 统一使用TCP协议
+        const response = await fetch(`${API_CONFIG.tcp.baseUrl}/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ username, password }),
         });
-        
         const result = await response.json();
         
         if (result.success) {
@@ -261,57 +266,6 @@ async function handleRegister(e) {
     } catch (error) {
         showToast('注册失败，请检查网络连接', 'error');
         console.error('Register error:', error);
-    }
-}
-
-// 显示聊天界面
-function showChatInterface() {
-    // 更新当前用户名
-    currentUsernameEl.textContent = currentUser.username;
-    
-    // 显示聊天容器
-    showContainer('chat');
-    
-    // 加载好友列表（模拟数据）
-    loadFriendsList();
-    
-    // 加载离线消息
-    loadOfflineMessages();
-}
-
-// 连接WebSocket
-function connectWebSocket() {
-    try {
-        wsConnection = new WebSocket(WS_URL);
-        
-        wsConnection.onopen = () => {
-            console.log('WebSocket连接成功');
-            isConnected = true;
-            showToast('WebSocket连接成功', 'success');
-        };
-        
-        wsConnection.onmessage = (event) => {
-            handleWebSocketMessage(event.data);
-        };
-        
-        wsConnection.onclose = () => {
-            console.log('WebSocket连接关闭');
-            isConnected = false;
-            showToast('WebSocket连接已关闭', 'info');
-            // 尝试重连
-            setTimeout(() => {
-                connectWebSocket();
-            }, 5000);
-        };
-        
-        wsConnection.onerror = (error) => {
-            console.error('WebSocket错误:', error);
-            isConnected = false;
-            showToast('WebSocket连接错误', 'error');
-        };
-    } catch (error) {
-        console.error('WebSocket连接失败:', error);
-        showToast('WebSocket连接失败', 'error');
     }
 }
 
@@ -344,6 +298,61 @@ function handleWebSocketMessage(message) {
     }
 }
 
+// 显示聊天界面
+function showChatInterface() {
+    // 更新当前用户名
+    currentUsernameEl.textContent = currentUser.username;
+    
+    // 显示聊天容器
+    showContainer('chat');
+    
+    // 加载好友列表（模拟数据）
+    loadFriendsList();
+    
+    // 加载离线消息
+    loadOfflineMessages();
+    
+    // 连接WebSocket
+    connectWebSocket();
+}
+
+// 连接WebSocket
+function connectWebSocket() {
+    try {
+        const wsUrl = API_CONFIG.tcp.wsUrl;
+        wsConnection = new WebSocket(wsUrl);
+        
+        wsConnection.onopen = () => {
+            console.log('WebSocket连接成功');
+            isConnected = true;
+            showToast('WebSocket连接成功', 'success');
+        };
+        
+        wsConnection.onmessage = (event) => {
+            handleWebSocketMessage(event.data);
+        };
+        
+        wsConnection.onclose = () => {
+            console.log('WebSocket连接关闭');
+            isConnected = false;
+            showToast('WebSocket连接已关闭', 'info');
+            // 尝试重连
+            setTimeout(() => {
+                connectWebSocket();
+            }, 5000);
+        };
+        
+        wsConnection.onerror = (error) => {
+            console.error('WebSocket错误:', error);
+            isConnected = false;
+            showToast('WebSocket连接错误', 'error');
+        };
+    } catch (error) {
+        console.error('WebSocket连接失败:', error);
+        showToast('WebSocket连接失败', 'error');
+    }
+}
+
 // 发送消息
 function sendMessage() {
     const content = messageInput.value.trim();
@@ -363,7 +372,7 @@ function sendMessage() {
     addMessageToChat(message);
     
     // 发送到WebSocket
-    if (isConnected && wsConnection.readyState === WebSocket.OPEN) {
+    if (isConnected && wsConnection && wsConnection.readyState === WebSocket.OPEN) {
         wsConnection.send(JSON.stringify(message));
     }
     
@@ -501,7 +510,7 @@ function createContactItem(contact) {
 // 加载离线消息
 async function loadOfflineMessages() {
     try {
-        const response = await fetch(`${API_BASE_URL}/messages/unread`, {
+        const response = await fetch(`${API_CONFIG.tcp.baseUrl}/messages/unread`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -525,7 +534,7 @@ async function loadOfflineMessages() {
             
             // 标记为已读
             const messageIds = result.messages.map(msg => msg.id);
-            await fetch(`${API_BASE_URL}/messages/read`, {
+            await fetch(`${API_CONFIG.tcp.baseUrl}/messages/read`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
