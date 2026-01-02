@@ -343,6 +343,17 @@ impl DbPool {
         Ok(users)
     }
 
+    // 检查用户是否存在（根据用户ID）
+    pub fn user_exists_by_id(&self, user_id: &str) -> Result<bool> {
+        let conn = self.0.lock().unwrap();
+        let exists: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)",
+            [user_id],
+            |row| row.get(0),
+        )?;
+        Ok(exists)
+    }
+
     // 发送好友请求
     pub fn send_friend_request(&self, from_user_id: &str, to_username: &str) -> Result<FriendRequest> {
         let conn = self.0.lock().unwrap();
@@ -429,56 +440,57 @@ impl DbPool {
     }
 
     // 响应好友请求
-    pub fn respond_to_friend_request(&self, request_id: &str, from_user_id: &str, response: &str) -> Result<Friendship> {
+    pub fn respond_to_friend_request(&self, request_id: &str, responder_id: &str, response: &str) -> Result<Friendship> {
         let conn = self.0.lock().unwrap();
-        
-        // 验证请求存在且属于该用户
-        let (to_user_id, current_status): (String, String) = conn.query_row(
-            "SELECT to_user_id, status FROM friend_requests WHERE id = ? AND from_user_id = ?",
-            params![request_id, from_user_id],
+
+        // 验证请求存在且由该接收方(responder)处理
+        // 查询出原始发送者(from_user_id)和当前状态
+        let (from_user_id, current_status): (String, String) = conn.query_row(
+            "SELECT from_user_id, status FROM friend_requests WHERE id = ? AND to_user_id = ?",
+            params![request_id, responder_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
-        
+
         if current_status != "pending" {
             return Err(rusqlite::Error::SqliteFailure(
                 rusqlite::ffi::Error::new(3),
                 Some("Friend request already processed".to_string())
             ));
         }
-        
+
         // 更新好友请求状态
         conn.execute(
             "UPDATE friend_requests SET status = ? WHERE id = ?",
             params![response, request_id],
         )?;
-        
+
         if response == "accepted" {
-            // 创建双向好友关系
+            // 创建双向好友关系（from_user_id <-> responder_id）
             let friendship_id = Uuid::new_v4().to_string();
             let created_at = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs() as i64;
-            
-            // 正向关系
+
+            // 正向关系（发送者的好友是接收者）
             conn.execute(
                 "INSERT INTO friendships (id, user_id, friend_id, status, created_at) 
                  VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![friendship_id, from_user_id, to_user_id, "accepted", created_at],
+                params![friendship_id, from_user_id, responder_id, "accepted", created_at],
             )?;
-            
-            // 反向关系
+
+            // 反向关系（接收者的好友是发送者）
             let reverse_friendship_id = Uuid::new_v4().to_string();
             conn.execute(
                 "INSERT INTO friendships (id, user_id, friend_id, status, created_at) 
                  VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![reverse_friendship_id, to_user_id, from_user_id, "accepted", created_at],
+                params![reverse_friendship_id, responder_id, from_user_id, "accepted", created_at],
             )?;
-            
+
             Ok(Friendship {
                 id: friendship_id,
                 user_id: from_user_id.to_string(),
-                friend_id: to_user_id,
+                friend_id: responder_id.to_string(),
                 status: "accepted".to_string(),
                 created_at,
             })
@@ -487,7 +499,7 @@ impl DbPool {
             Ok(Friendship {
                 id: request_id.to_string(),
                 user_id: from_user_id.to_string(),
-                friend_id: to_user_id,
+                friend_id: responder_id.to_string(),
                 status: "rejected".to_string(),
                 created_at: 0,
             })

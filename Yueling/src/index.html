@@ -110,9 +110,14 @@
                             <span id="user-status" class="status online">在线</span>
                         </div>
                     </div>
-                    <button id="logout-btn" class="btn btn-secondary">
+                        <div class="sidebar-actions">
+                            <button id="add-friend-open" class="btn-icon" title="添加好友">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                            <button id="logout-btn" class="btn btn-secondary">
                         <i class="fas fa-sign-out-alt"></i>
-                    </button>
+                            </button>
+                        </div>
                 </div>
                 
                 <div class="sidebar-search">
@@ -196,7 +201,46 @@
     
     <!-- 通知提示 -->
     <div id="toast" class="toast"></div>
-    
+    <!-- 添加好友页面 -->
+    <div id="add-friend-container" class="container">
+        <div class="register-box">
+            <div class="logo">
+                <i class="fas fa-user-plus"></i>
+                <h1>添加好友</h1>
+            </div>
+            <form id="add-friend-form" class="form">
+                <div class="form-group">
+                    <label for="add-friend-username">好友用户名</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="add-friend-username" placeholder="输入好友用户名" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="add-friend-display">显示名称（可选）</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-id-badge"></i>
+                        <input type="text" id="add-friend-display" placeholder="对好友显示的名称">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="add-friend-note">备注（可选）</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-sticky-note"></i>
+                        <input type="text" id="add-friend-note" placeholder="给好友写点备注">
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;">
+                    <button type="submit" class="btn btn-primary">发送好友请求</button>
+                    <button type="button" id="add-friend-cancel" class="btn btn-secondary" style="width:auto;padding:8px;">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="./main.js"></script>
 </body>
 </html>
