@@ -7,16 +7,16 @@ edition = "2024"
 dav-server = "0.8.0"
 libp2p = "0.56.0"
 quinn = "0.11.9"
-rcgen = "0.13.0"
+rcgen = "0.14.6"
 uuid = { version = "1.19.0", features = ["v4"] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.49", features = ["full"] }
 anyhow = "1.0.75"
 bcrypt = "0.17.1"
-rusqlite = { version = "0.37.0", features = ["bundled"] }
+rusqlite = { version = "0.38.0", features = ["bundled"] }
 serde = "1.0.228"
-axum = { version = "0.8.7", features = ["ws"] }
+axum = { version = "0.8.8", features = ["ws"] }
 tower-http = { version = "0.6.8", features = ["cors", "compression-gzip", "trace"] }
 thiserror = "2.0.17"
-serde_json = "1.0.145"
+serde_json = "1.0.149"
 futures-util = "0.3.31"
 tokio-tungstenite = "0.28.0"

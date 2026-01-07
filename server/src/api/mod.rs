@@ -5,12 +5,14 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use crate::storage::DbPool;
 use crate::error::AppError;
 use bcrypt::verify;
 use futures_util::{SinkExt, StreamExt};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::collections::hash_map::Entry;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
@@ -19,6 +21,8 @@ use uuid::Uuid;
 pub struct AppState {
     pub db_pool: DbPool,
     clients: Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>,
+    // client_id -> user_id 映射，用于在断开时清理 user_id 条目
+    client_user_map: Arc<Mutex<HashMap<String, String>>>,
     broadcaster: broadcast::Sender<String>,
 }
 
@@ -28,6 +32,7 @@ impl AppState {
         Self {
             db_pool,
             clients: Arc::new(Mutex::new(HashMap::new())),
+            client_user_map: Arc::new(Mutex::new(HashMap::new())),
             broadcaster,
         }
     }
@@ -128,6 +133,7 @@ pub struct RespondToFriendRequestRequest {
 pub struct RespondToFriendRequestResponse {
     pub success: bool,
     pub message: String,
+    pub friendship: Option<FriendInfo>,
 }
 
 #[derive(Deserialize)]
@@ -189,8 +195,6 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     // 创建客户端专用通道
     let (client_tx, mut client_rx) = broadcast::channel(100);
     
-    // 将客户端添加到状态
-    state.clients.lock().unwrap().insert(client_id.clone(), client_tx.clone());
     println!("New WebSocket client connected: {}", client_id);
     
     // 广播新客户端连接
@@ -202,8 +206,28 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     let recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
             if let Message::Text(text) = msg {
+                // 尝试解析为 JSON 以处理特殊类型（例如 identify）
+                if let Ok(v) = serde_json::from_str::<Value>(&text) {
+                    if let Some(t) = v.get("type").and_then(|x| x.as_str()) {
+                        match t {
+                            "identify" => {
+                                if let Some(user_id) = v.get("user_id").and_then(|x| x.as_str()) {
+                                    // 将客户端通道映射到 user_id，方便推送定向通知
+                                    let mut clients_map = state_clone.clients.lock().unwrap();
+                                    clients_map.insert(user_id.to_string(), client_tx.clone());
+                                    // 记录 client_id -> user_id 映射，便于断开时清理
+                                    state_clone.client_user_map.lock().unwrap().insert(client_id_clone.clone(), user_id.to_string());
+                                    println!("WebSocket client {} identified as user {}", client_id_clone, user_id);
+                                }
+                                continue;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+
                 println!("Received from {}: {}", client_id_clone, text);
-                // 广播消息给所有客户端
+                // 广播消息给所有客户端（保持原有行为）
                 let _ = state_clone.broadcaster.send(format!("{}: {}", client_id_clone, text));
             }
         }
@@ -224,10 +248,23 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
         _ = send_task => (),
     }
     
-    // 移除客户端
-    state.clients.lock().unwrap().remove(&client_id);
+    // 移除客户端映射（包括 client_id 以及可能存在的 user_id）
+    {
+        let mut clients = state.clients.lock().unwrap();
+        // 先移除以 client_id 作为 key 的项（若存在）
+        clients.remove(&client_id);
+    }
+
+    // 若之前识别过（有 client->user 映射），清理对应的 user_id 映射
+    {
+        let mut cmap = state.client_user_map.lock().unwrap();
+        if let Some(user_id) = cmap.remove(&client_id) {
+            let mut clients = state.clients.lock().unwrap();
+            clients.remove(&user_id);
+        }
+    }
+
     println!("WebSocket client disconnected: {}", client_id);
-    
     // 广播客户端断开连接
     let _ = state.broadcaster.send(format!("Client {} left", client_id));
 }
@@ -324,15 +361,33 @@ pub async fn send_friend_request_handler(
                 rusqlite::Error::QueryReturnedNoRows => {
                     AppError::FriendOperation("目标用户不存在".into())
                 }
-                rusqlite::Error::SqliteFailure(_, Some(msg)) if msg == "Already friends" => {
-                    AppError::InvalidCredentials("已经是好友".into())
-                }
-                rusqlite::Error::SqliteFailure(_, Some(msg)) if msg == "Friend request already sent" => {
-                    AppError::InvalidCredentials("好友请求已发送".into())
-                }
+                        rusqlite::Error::SqliteFailure(_, Some(msg)) if msg == "Already friends" => {
+                            AppError::FriendOperation("已经是好友".into())
+                        }
+                        rusqlite::Error::SqliteFailure(_, Some(msg)) if msg == "Friend request already sent" => {
+                            AppError::FriendOperation("好友请求已发送".into())
+                        }
+                        // 捕获 SQLite 的唯一约束错误并映射为友好提示
+                        rusqlite::Error::SqliteFailure(_, Some(msg)) if msg.contains("UNIQUE constraint failed") => {
+                            AppError::FriendOperation("好友请求已存在".into())
+                        }
                 _ => AppError::Database(e.to_string())
             }
         })?;
+
+    // 尝试通知接收者（若其已通过 WebSocket 标识并连接）
+    let notify = json!({
+        "type": "friend_request",
+        "request_id": result.id,
+        "from_user_id": result.from_user_id,
+        "to_user_id": result.to_user_id,
+        "message": "您收到新的好友请求"
+    })
+    .to_string();
+
+    if let Some(tx) = state.clients.lock().unwrap().get(&result.to_user_id) {
+        let _ = tx.send(notify);
+    }
 
     Ok(Json(SendFriendRequestResponse {
         success: true,
@@ -349,17 +404,33 @@ pub async fn get_friend_requests_handler(
     let requests = state.db_pool.get_received_friend_requests(&req.user_id)
         .map_err(|e| AppError::Database(e.to_string()))?;
 
-    let request_infos: Vec<FriendRequestInfo> = requests.into_iter().map(|req| {
-        // 这里需要获取发送者的用户名，但为了简化，我们暂时只返回ID
-        // 实际应用中应该联表查询获取用户名
+    let mut request_infos: Vec<FriendRequestInfo> = requests.into_iter().map(|req| {
+        // 这里需获取发送者的用户名，联表查询并返回友好名称
+        // 注意：在持有连接锁的情况下按顺序查询用户名，若性能成为问题可改为联表查询一次性获取
         FriendRequestInfo {
             id: req.id,
             from_user_id: req.from_user_id,
-            from_username: "".to_string(), // 需要额外查询
+            from_username: "".to_string(), // 占位，后面会替换
             created_at: req.created_at,
         }
     }).collect();
-
+    // 填充 from_username 字段（从 users 表查找用户名）
+    if !request_infos.is_empty() {
+        let conn = state.db_pool.0.lock().unwrap();
+        for info in request_infos.iter_mut() {
+            let uname: Result<String, rusqlite::Error> = conn.query_row(
+                "SELECT username FROM users WHERE id = ?",
+                [&info.from_user_id],
+                |row| row.get(0),
+            );
+            if let Ok(name) = uname {
+                info.from_username = name;
+            } else {
+                // 若查询失败，保留原始 user_id 以便前端回退显示
+                info.from_username = info.from_user_id.clone();
+            }
+        }
+    }
     Ok(Json(GetFriendRequestsResponse {
         success: true,
         message: "获取好友请求成功".into(),
@@ -372,17 +443,69 @@ pub async fn respond_to_friend_request_handler(
     State(state): State<AppState>,
     Json(req): Json<RespondToFriendRequestRequest>,
 ) -> Result<Json<RespondToFriendRequestResponse>, AppError> {
-    state.db_pool.respond_to_friend_request(&req.request_id, &req.user_id, &req.response)
+    // 调用存储层并获取结果（如果被接受，会返回创建的 Friendship）
+    let friendship = state.db_pool.respond_to_friend_request(&req.request_id, &req.user_id, &req.response)
         .map_err(|e| {
             match e {
                 rusqlite::Error::SqliteFailure(_, Some(msg)) if msg == "Friend request already processed" => {
-                    AppError::InvalidCredentials("好友请求已处理".into())
+                    AppError::FriendOperation("好友请求已处理".into())
                 }
                 _ => AppError::Database(e.to_string())
             }
         })?;
 
+    let mut friendship_info: Option<FriendInfo> = None;
+
     let message = if req.response == "accepted" {
+        // 如果接受，查询双方用户名并通知双方刷新好友列表（若在线）
+        let conn = state.db_pool.0.lock().unwrap();
+        let from_username: String = conn.query_row(
+            "SELECT username FROM users WHERE id = ?",
+            [&friendship.user_id],
+            |row| row.get(0),
+        ).unwrap_or_else(|_| "".to_string());
+
+        let to_username: String = conn.query_row(
+            "SELECT username FROM users WHERE id = ?",
+            [&friendship.friend_id],
+            |row| row.get(0),
+        ).unwrap_or_else(|_| "".to_string());
+
+        let notify = json!({
+            "type": "friend_added",
+            "user_id": friendship.friend_id,
+            "friend_id": friendship.user_id,
+            "friend_username": from_username,
+            "message": "您已成为好友"
+        })
+        .to_string();
+
+        let reverse_notify = json!({
+            "type": "friend_added",
+            "user_id": friendship.user_id,
+            "friend_id": friendship.friend_id,
+            "friend_username": to_username,
+            "message": "您已成为好友"
+        })
+        .to_string();
+
+        // 尝试向发送者和接收者发送通知（如果他们通过 websocket 标识并连接）
+        let mut clients = state.clients.lock().unwrap();
+        if let Some(tx) = clients.get(&friendship.friend_id) {
+            println!("Sending friend_added notify to {}: {}", friendship.friend_id, notify);
+            let _ = tx.send(notify.clone());
+        } else {
+            println!("No websocket client for {} when sending notify", friendship.friend_id);
+        }
+        if let Some(tx) = clients.get(&friendship.user_id) {
+            println!("Sending friend_added notify to {}: {}", friendship.user_id, reverse_notify);
+            let _ = tx.send(reverse_notify.clone());
+        } else {
+            println!("No websocket client for {} when sending notify", friendship.user_id);
+        }
+
+        // 准备返回的好友信息（用于前端立即更新）——对调用者（接收者）返回对方信息
+        friendship_info = Some(FriendInfo { id: friendship.user_id.clone(), username: from_username.clone() });
         "好友请求已接受".into()
     } else {
         "好友请求已拒绝".into()
@@ -391,6 +514,7 @@ pub async fn respond_to_friend_request_handler(
     Ok(Json(RespondToFriendRequestResponse {
         success: true,
         message,
+        friendship: friendship_info,
     }))
 }
 
@@ -445,6 +569,8 @@ pub fn register_routes(db_pool: DbPool) -> Router {
         .route("/respond-to-friend-request", post(respond_to_friend_request_handler))
         .route("/get-friends", post(get_friends_handler))
         .route("/remove-friend", post(remove_friend_handler))
+        // 用户存在性检查（前端启动时用于自动登录验证）
+        .route("/user/exists", post(user_exists_handler))
         .with_state(app_state)
 }
 

@@ -27,6 +27,11 @@ let addFriendContainer;
 let addFriendForm;
 let addFriendOpenBtn;
 let addFriendCancelBtn;
+let isSendingFriendRequest = false;
+let friendRequestsContainer;
+let friendRequestsOpenBtn;
+let friendRequestsCancelBtn;
+let friendRequestsList;
 
 // 聊天相关元素
 let chatMessages;
@@ -86,6 +91,10 @@ function initDOM() {
     addFriendForm = document.getElementById('add-friend-form');
     addFriendOpenBtn = document.getElementById('add-friend-open');
     addFriendCancelBtn = document.getElementById('add-friend-cancel');
+    friendRequestsContainer = document.getElementById('friend-requests-container');
+    friendRequestsOpenBtn = document.getElementById('friend-requests-open');
+    friendRequestsCancelBtn = document.getElementById('friend-requests-cancel');
+    friendRequestsList = document.getElementById('friend-requests-list');
 }
 
 // 绑定事件
@@ -115,12 +124,22 @@ function bindEvents() {
         });
     }
 
+    if (friendRequestsOpenBtn) {
+        friendRequestsOpenBtn.addEventListener('click', () => {
+            showContainer('friend-requests');
+            loadFriendRequests();
+        });
+    }
+
     if (addFriendForm) {
         addFriendForm.addEventListener('submit', handleAddFriendSubmit);
     }
 
     if (addFriendCancelBtn) {
         addFriendCancelBtn.addEventListener('click', () => showContainer('chat'));
+    }
+    if (friendRequestsCancelBtn) {
+        friendRequestsCancelBtn.addEventListener('click', () => showContainer('chat'));
     }
     
     // 聊天相关事件
@@ -151,6 +170,7 @@ function showContainer(containerName) {
     registerContainer.classList.remove('active');
     chatContainer.classList.remove('active');
     if (addFriendContainer) addFriendContainer.classList.remove('active');
+    if (friendRequestsContainer) friendRequestsContainer.classList.remove('active');
     
     // 显示指定容器
     switch(containerName) {
@@ -165,6 +185,9 @@ function showContainer(containerName) {
             break;
         case 'add-friend':
             if (addFriendContainer) addFriendContainer.classList.add('active');
+            break;
+        case 'friend-requests':
+            if (friendRequestsContainer) friendRequestsContainer.classList.add('active');
             break;
     }
 }
@@ -299,7 +322,15 @@ async function handleLogin(e) {
             
             showToast('登录成功', 'success');
             showChatInterface();
+            // 若 websocket 已连接或未连接，确保发送 identify 给服务器以便接收定向通知
             connectWebSocket();
+            try {
+                if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                    wsConnection.send(JSON.stringify({ type: 'identify', user_id: currentUser.id, username: currentUser.username }));
+                }
+            } catch (e) {
+                // ignore
+            }
         } else {
             console.error('Login returned error payload:', result);
             showToast(result.message || '登录失败', 'error');
@@ -378,6 +409,29 @@ function handleWebSocketMessage(message) {
             case 'user_joined':
                 showToast(`${data.username} 加入了聊天`, 'info');
                 break;
+            case 'friend_request':
+                showToast('您收到新的好友请求', 'info');
+                if (currentUser) {
+                    // 拉取收到的好友请求并缓存
+                    fetch(`${API_CONFIG.tcp.baseUrl}/get-friend-requests`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: currentUser.id })
+                    })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            localStorage.setItem('receivedFriendRequests', JSON.stringify(res.requests || []));
+                        }
+                    }).catch(err => console.error('拉取好友请求失败', err));
+                }
+                break;
+            case 'friend_added':
+                console.debug('ws friend_added received:', data);
+                showToast('好友已添加，正在刷新好友列表', 'success');
+                // 刷新好友列表
+                loadFriendsList();
+                break;
             case 'user_left':
                 showToast(`${data.username} 离开了聊天`, 'info');
                 break;
@@ -430,10 +484,17 @@ function connectWebSocket() {
             // 仅在已有登录用户时显示连接成功提示，避免启动或注册页面产生噪音
             if (currentUser) {
                 showToast('WebSocket连接成功', 'success');
+                // 向服务器标识当前用户，便于接收定向通知（如好友请求）
+                try {
+                    wsConnection.send(JSON.stringify({ type: 'identify', user_id: currentUser.id, username: currentUser.username }));
+                } catch (e) {
+                    console.warn('Failed to send identify over websocket', e);
+                }
             }
         };
         
         wsConnection.onmessage = (event) => {
+            console.debug('WS raw message:', event.data);
             handleWebSocketMessage(event.data);
         };
         
@@ -568,23 +629,67 @@ function loadChatHistory(contact) {
 function loadFriendsList() {
     // 清空联系人列表
     contactList.innerHTML = '';
-    // 尝试从本地存储读取好友列表，优先使用后端API填充
+    // 若已登录，优先从后端获取好友列表
     const stored = JSON.parse(localStorage.getItem('friendsList') || '[]');
+    if (currentUser) {
+        try {
+            fetch(`${API_CONFIG.tcp.baseUrl}/get-friends`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id })
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success && Array.isArray(result.friends)) {
+                    // 将后端返回的好友渲染并缓存到本地（去重）
+                    const raw = result.friends.map(f => ({ id: f.id, name: f.username, status: 'online' }));
+                    const seen = new Set();
+                    const friends = raw.filter(f => {
+                        if (seen.has(f.id)) return false;
+                        seen.add(f.id);
+                        return true;
+                    });
+                    localStorage.setItem('friendsList', JSON.stringify(friends));
+                    friends.forEach(friend => contactList.appendChild(createContactItem(friend)));
+                } else if (stored && stored.length > 0) {
+                    // 渲染本地缓存时也去重
+                    const seen = new Set();
+                    stored.forEach(friend => {
+                        if (seen.has(friend.id)) return;
+                        seen.add(friend.id);
+                        contactList.appendChild(createContactItem(friend));
+                    });
+                }
+            }).catch(err => {
+                console.error('获取好友列表失败，回退使用本地缓存', err);
+                if (stored && stored.length > 0) {
+                    stored.forEach(friend => contactList.appendChild(createContactItem(friend)));
+                }
+            });
+            return;
+        } catch (err) {
+            console.error('获取好友列表异常，回退本地缓存', err);
+        }
+    }
 
+    // 若未登录或后端不可用，使用本地缓存渲染
     if (stored && stored.length > 0) {
         stored.forEach(friend => {
             const contactItem = createContactItem(friend);
             contactList.appendChild(contactItem);
         });
-        return;
     }
-
-    // 如果本地没有，则保留空列表（可在此处请求后端API）
-    // fetch(`${API_CONFIG.tcp.baseUrl}/friends`).then(r => r.json()).then(data => { /* 渲染 data */ });
 }
 
 // 创建联系人项
 function createContactItem(contact) {
+    // 若 DOM 中已有相同 id 的联系人项，复用以避免重复
+    const existing = document.querySelector(`.contact-item[data-id="${contact.id}"]`);
+    if (existing) {
+        console.debug('createContactItem: existing contact found for id=', contact.id);
+        return existing;
+    }
+
     const div = document.createElement('div');
     div.className = 'contact-item';
     div.dataset.id = contact.id;
@@ -619,6 +724,7 @@ function createContactItem(contact) {
         loadChatHistory(contact);
     });
     
+    console.debug('createContactItem created for id=', contact.id, 'name=', contact.name);
     return div;
 }
 
@@ -789,6 +895,11 @@ async function handleAddFriendSubmit(e) {
     };
 
     try {
+        if (isSendingFriendRequest) return;
+        isSendingFriendRequest = true;
+        // 禁用提交按钮防止重复点击
+        const submitBtn = addFriendForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         const response = await fetch(`${API_CONFIG.tcp.baseUrl}/friends/add`, {
             method: 'POST',
             headers: {
@@ -834,29 +945,21 @@ async function handleAddFriendSubmit(e) {
             const txt = await response.text();
             console.error('Failed to parse add-friend response:', err, txt);
             showToast('添加好友失败：服务器返回无法解析的响应', 'error');
+            isSendingFriendRequest = false;
+            const submitBtn = addFriendForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = false;
+            // small delay to avoid race with websocket notifications
+            await new Promise(r => setTimeout(r, 200));
             return;
         }
 
         if (result.success) {
-            // 后端返回的好友信息优先使用
-            const friendData = result.friend || {
-                id: result.user_id || username,
-                name: result.username || display || username,
-                note: note || '',
-                status: result.status || 'offline'
-            };
+            // 不再在双方列表中立即添加好友：仅记录为已发送的好友请求，等待对方接受后由后端创建双向好友关系
+            const pending = JSON.parse(localStorage.getItem('pendingFriendRequests') || '[]');
+            pending.push({ request_id: result.request_id || null, to_username: username, display, note, from_user_id: currentUser.id, created_at: Date.now() });
+            localStorage.setItem('pendingFriendRequests', JSON.stringify(pending));
 
-            // 保存到本地存储
-            const stored = JSON.parse(localStorage.getItem('friendsList') || '[]');
-            if (!stored.find(f => f.id === friendData.id)) {
-                stored.push(friendData);
-                localStorage.setItem('friendsList', JSON.stringify(stored));
-                // 在 UI 中添加
-                const item = createContactItem(friendData);
-                contactList.appendChild(item);
-            }
-
-            showToast(result.message || '好友请求发送成功', 'success');
+            showToast(result.message || '好友请求已发送，等待对方确认', 'success');
             addFriendForm.reset();
             showContainer('chat');
         } else {
@@ -867,4 +970,125 @@ async function handleAddFriendSubmit(e) {
         console.error('Add friend network error:', error);
         showToast('添加好友失败，请检查网络连接', 'error');
     }
+}
+
+// 加载并渲染收到的好友请求
+function loadFriendRequests() {
+    // 先尝试从本地缓存读取
+    const cached = JSON.parse(localStorage.getItem('receivedFriendRequests') || '[]');
+    if (!currentUser) {
+        renderFriendRequests(cached);
+        return;
+    }
+
+    fetch(`${API_CONFIG.tcp.baseUrl}/get-friend-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUser.id })
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            const requests = result.requests || [];
+            localStorage.setItem('receivedFriendRequests', JSON.stringify(requests));
+            renderFriendRequests(requests);
+        } else {
+            renderFriendRequests(cached);
+        }
+    }).catch(err => {
+        console.error('拉取好友请求失败，使用本地缓存', err);
+        renderFriendRequests(cached);
+    });
+}
+
+function renderFriendRequests(requests) {
+    if (!friendRequestsList) return;
+    friendRequestsList.innerHTML = '';
+    if (!requests || requests.length === 0) {
+        friendRequestsList.innerHTML = '<div>没有新的好友请求。</div>';
+        return;
+    }
+
+    requests.forEach(req => {
+        const div = document.createElement('div');
+        div.className = 'friend-request-item';
+        const from = req.from_username || req.from_user_id || '未知用户';
+        const created = req.created_at ? new Date(req.created_at * 1000).toLocaleString() : '';
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;">
+                <div>
+                    <div><strong>${from}</strong></div>
+                    <div style="font-size:12px;color:#666;">请求时间：${created}</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-primary btn-accept" data-id="${req.id}">接受</button>
+                    <button class="btn btn-secondary btn-reject" data-id="${req.id}">拒绝</button>
+                </div>
+            </div>
+        `;
+
+        friendRequestsList.appendChild(div);
+    });
+
+    // 绑定按钮事件
+    friendRequestsList.querySelectorAll('.btn-accept').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            respondToFriendRequest(id, 'accepted');
+        });
+    });
+
+    friendRequestsList.querySelectorAll('.btn-reject').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            respondToFriendRequest(id, 'rejected');
+        });
+    });
+}
+
+function respondToFriendRequest(requestId, response) {
+    if (!currentUser) {
+        showToast('请先登录以处理好友请求', 'error');
+        return;
+    }
+
+    fetch(`${API_CONFIG.tcp.baseUrl}/respond-to-friend-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId, user_id: currentUser.id, response })
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message || '操作成功', 'success');
+            // 从本地缓存移除该请求
+            const stored = JSON.parse(localStorage.getItem('receivedFriendRequests') || '[]');
+            const updated = stored.filter(r => r.id !== requestId);
+            localStorage.setItem('receivedFriendRequests', JSON.stringify(updated));
+            renderFriendRequests(updated);
+            // 如果接受，则刷新好友列表
+            if (response === 'accepted') {
+                // 如果服务端返回了 friendship 信息，直接插入本地好友列表以加速同步
+                if (result.friendship) {
+                    const f = result.friendship;
+                    const storedFriends = JSON.parse(localStorage.getItem('friendsList') || '[]');
+                    const existsInStorage = storedFriends.find(x => x.id === f.id);
+                    const existsInDOM = !!contactList.querySelector(`[data-id="${f.id}"]`);
+                    if (!existsInStorage && !existsInDOM) {
+                        storedFriends.push({ id: f.id, name: f.username || f.id, status: 'online' });
+                        localStorage.setItem('friendsList', JSON.stringify(storedFriends));
+                        const item = createContactItem({ id: f.id, name: f.username || f.id, status: 'online' });
+                        contactList.appendChild(item);
+                    }
+                }
+                // 仍然尝试从后端刷新完整列表
+                loadFriendsList();
+            }
+        } else {
+            showToast(result.message || '处理失败', 'error');
+        }
+    }).catch(err => {
+        console.error('响应好友请求失败', err);
+        showToast('网络错误，处理失败', 'error');
+    });
 }

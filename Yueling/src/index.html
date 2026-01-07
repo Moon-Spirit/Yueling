@@ -114,8 +114,11 @@
                             <button id="add-friend-open" class="btn-icon" title="添加好友">
                                 <i class="fas fa-user-plus"></i>
                             </button>
+                            <button id="friend-requests-open" class="btn-icon" title="好友请求">
+                                <i class="fas fa-user-check"></i>
+                            </button>
                             <button id="logout-btn" class="btn btn-secondary">
-                        <i class="fas fa-sign-out-alt"></i>
+                                <i class="fas fa-sign-out-alt"></i>
                             </button>
                         </div>
                 </div>
@@ -238,6 +241,28 @@
                     <button type="button" id="add-friend-cancel" class="btn btn-secondary" style="width:auto;padding:8px;">取消</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 好友请求页面 -->
+    <div id="friend-requests-container" class="container">
+        <div class="register-box">
+            <div class="logo">
+                <i class="fas fa-user-check"></i>
+                <h1>好友请求</h1>
+            </div>
+            <div class="form">
+                <div class="form-group">
+                    <label>收到的好友请求</label>
+                    <div class="input-wrapper">
+                        <div id="friend-requests-list" style="width:100%;"></div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;">
+                    <button type="button" id="friend-requests-cancel" class="btn btn-secondary" style="width:auto;padding:8px;">返回</button>
+                </div>
+            </div>
         </div>
     </div>
 
