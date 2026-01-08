@@ -442,7 +442,7 @@ function handleWebSocketMessage(message) {
                 showToast('您收到新的好友请求', 'info');
                 if (currentUser) {
                     // 拉取收到的好友请求并缓存
-                    fetch(`${API_CONFIG.tcp.baseUrl}/get-friend-requests`, {
+                    fetch(`${API_CONFIG.BASE_URL}/get-friend-requests`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: currentUser.id })
@@ -953,7 +953,7 @@ async function handleAddFriendSubmit(e) {
         // 禁用提交按钮防止重复点击
         const submitBtn = addFriendForm.querySelector('button[type="submit"]');
         if (submitBtn) submitBtn.disabled = true;
-        const response = await fetch(`${API_CONFIG.tcp.baseUrl}/friends/add`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/friends/add`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1105,7 +1105,7 @@ function respondToFriendRequest(requestId, response) {
         return;
     }
 
-    fetch(`${API_CONFIG.tcp.baseUrl}/respond-to-friend-request`, {
+    fetch(`${API_CONFIG.BASE_URL}/respond-to-friend-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_id: requestId, user_id: currentUser.id, response })
