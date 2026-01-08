@@ -4,6 +4,7 @@ use serde_json::{json, Value};
 use crate::storage::DbPool;
 use crate::error::AppError;
 use std::collections::hash_map::Entry;
+use hex;
 
 // 共享应用状态
 use super::AppState;
@@ -130,7 +131,17 @@ pub async fn send_friend_request_handler(
     State(state): State<AppState>,
     Json(req): Json<SendFriendRequestRequest>,
 ) -> Result<Json<SendFriendRequestResponse>, AppError> {
-    let result = state.db_pool.send_friend_request(&req.from_user_id, &req.to_username)
+    // 使用私有算法和公有算法加密目标用户名
+    let encrypted_bytes = state.crypto_service.encrypt(req.to_username.as_bytes())
+        .map_err(|e| AppError::Internal(format!("加密失败: {}", e)))?;
+    let encrypted_hex = hex::encode(encrypted_bytes);
+    // 解密回原始用户名
+    let decrypted_bytes = state.crypto_service.decrypt(&hex::decode(&encrypted_hex).unwrap())
+        .map_err(|e| AppError::Internal(format!("解密失败: {}", e)))?;
+    let decrypted_username = String::from_utf8(decrypted_bytes)
+        .map_err(|e| AppError::Internal(format!("UTF-8解码失败: {}", e)))?;
+    
+    let result = state.db_pool.send_friend_request(&req.from_user_id, &decrypted_username)
         .map_err(|e| {
             match e {
                 rusqlite::Error::QueryReturnedNoRows => {

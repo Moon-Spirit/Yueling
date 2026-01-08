@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex};
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::broadcast;
 use uuid::Uuid;
+use server::utils::crypto::CryptoService;
 
 // 导入子模块
 mod user;
@@ -26,17 +27,22 @@ pub struct AppState {
     client_user_map: Arc<Mutex<HashMap<String, String>>>,
     /// 全局广播通道，用于向所有客户端发送消息
     broadcaster: broadcast::Sender<String>,
+    /// 加密服务，用于私有算法和公有算法加密
+    pub crypto_service: CryptoService,
 }
 
 impl AppState {
     /// 创建新的应用状态
     pub fn new(db_pool: crate::storage::DbPool) -> Self {
         let (broadcaster, _) = broadcast::channel(100);
+        // 初始化加密服务（使用随机生成的私钥）
+        let crypto_service = CryptoService::generate();
         Self {
             db_pool,
             clients: Arc::new(Mutex::new(HashMap::new())),
             client_user_map: Arc::new(Mutex::new(HashMap::new())),
             broadcaster,
+            crypto_service,
         }
     }
 }

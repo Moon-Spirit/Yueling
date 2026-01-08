@@ -2,6 +2,7 @@ use axum::{extract::{State}, response::Json, routing::{get, post}, Router};
 use serde::{Deserialize, Serialize};
 use crate::storage::{DbPool, Message};
 use crate::error::AppError;
+use hex;
 
 // 共享应用状态
 use super::AppState;
@@ -55,10 +56,15 @@ pub async fn send_message_handler(
     State(state): State<AppState>,
     Json(req): Json<SendMessageRequest>,
 ) -> Result<Json<SendMessageResponse>, AppError> {
+    // 使用私有算法和公有算法加密消息内容
+    let encrypted_bytes = state.crypto_service.encrypt(req.content.as_bytes())
+        .map_err(|e| AppError::Internal(format!("加密失败: {}", e)))?;
+    let encrypted_hex = hex::encode(encrypted_bytes);
+    
     let message = state.db_pool.send_message(
         &req.sender_id,
         &req.receiver_id,
-        &req.content,
+        &encrypted_hex,
         &req.message_type,
     )
     .map_err(|e| AppError::Database(e.to_string()))?;
@@ -75,8 +81,20 @@ pub async fn get_unread_messages_handler(
     State(state): State<AppState>,
     Json(req): Json<GetUnreadMessagesRequest>,
 ) -> Result<Json<GetUnreadMessagesResponse>, AppError> {
-    let messages = state.db_pool.get_unread_messages(&req.user_id)
+    let mut messages = state.db_pool.get_unread_messages(&req.user_id)
         .map_err(|e| AppError::Database(e.to_string()))?;
+    
+    // 对每条消息的内容进行解密
+    for msg in messages.iter_mut() {
+        let encrypted_bytes = hex::decode(&msg.content)
+            .map_err(|e| AppError::Internal(format!("十六进制解码失败: {}", e)))?;
+        let decrypted_bytes = state.crypto_service.decrypt(&encrypted_bytes)
+            .map_err(|e| AppError::Internal(format!("解密失败: {}", e)))?;
+        // 将解密后的字节转换为字符串
+        let decrypted_content = String::from_utf8(decrypted_bytes)
+            .map_err(|e| AppError::Internal(format!("解密内容UTF-8解码失败: {}", e)))?;
+        msg.content = decrypted_content;
+    }
 
     Ok(Json(GetUnreadMessagesResponse {
         success: true,
