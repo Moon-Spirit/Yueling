@@ -1,33 +1,40 @@
 mod api;
 mod storage;
 mod error;
-use storage::DbPool;
+
 use axum::Router;
 use tokio::net::TcpListener;
 use tower_http::cors::{CorsLayer, Any};
 use axum::http::Method;
+use storage::DbPool;
 
-#[tokio::main] // 异步运行时（tokio full特性已启用）
+/// 主函数：启动聊天服务器
+/// 
+/// 1. 初始化数据库连接池
+/// 2. 构建API路由和WebSocket服务
+/// 3. 配置CORS
+/// 4. 启动HTTP和WebSocket服务器
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 初始化数据库
+    // 初始化数据库连接池
     let db_pool = DbPool::new("server.db")?;
 
-    // 构建API路由
-    // 添加 CORS 层以允许浏览器前端跨域请求（处理 OPTIONS 预检）
+    // 配置跨域资源共享（CORS）策略
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers(Any);
 
+    // 构建API路由
     let app = api::register_routes(db_pool.clone()).layer(cors);
 
-    // 启动统一服务器，使用单个端口
+    // 启动服务器
     let port = 2025;
     let addr = format!("0.0.0.0:{}", port);
     let listener = TcpListener::bind(&addr).await?;
-    println!("Server listening on http://{} (TCP) and ws://{} (WebSocket)", addr, addr);
+    println!("服务器正在监听 http://{} (HTTP) 和 ws://{} (WebSocket)", addr, addr);
     
-    // 使用axum的正确方式启动服务器
+    // 启动HTTP和WebSocket服务
     axum::serve(listener, app).await?;
     
     Ok(())

@@ -327,8 +327,8 @@ pub async fn remove_friend_handler(
     }))
 }
 
-// 导出好友相关路由
-pub fn register_friend_routes() -> Router<AppState> {
+/// 注册好友相关路由
+pub fn register_routes() -> Router<AppState> {
     Router::new()
         // 好友功能路由
         .route("/search-users", post(search_users_handler))

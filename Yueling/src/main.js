@@ -1,19 +1,19 @@
+// 聊天应用客户端脚本
+
 // 全局变量
 let currentUser = null;
 let wsConnection = null;
 let isConnected = false;
 let currentChatContact = null;
+let isSendingFriendRequest = false;
 
-// API配置
+// API配置 - 统一使用TCP协议
 const API_CONFIG = {
-    tcp: {
-        baseUrl: 'http://localhost:2025',
-        wsUrl: 'ws://localhost:2025/ws'
-    },
-    currentProtocol: 'tcp' // 统一使用TCP协议
+    BASE_URL: 'http://localhost:2025',
+    WS_URL: 'ws://localhost:2025/ws'
 };
 
-// DOM元素
+// DOM元素引用
 let loginContainer;
 let registerContainer;
 let chatContainer;
@@ -27,13 +27,12 @@ let addFriendContainer;
 let addFriendForm;
 let addFriendOpenBtn;
 let addFriendCancelBtn;
-let isSendingFriendRequest = false;
 let friendRequestsContainer;
 let friendRequestsOpenBtn;
 let friendRequestsCancelBtn;
 let friendRequestsList;
 
-// 聊天相关元素
+// 聊天相关DOM元素
 let chatMessages;
 let messageInput;
 let sendBtn;
@@ -43,28 +42,32 @@ let tabBtns;
 let contactList;
 let chatContactName;
 
+// DOM加载完成后初始化应用
 window.addEventListener("DOMContentLoaded", async () => {
-    // 初始化DOM元素
+    // 初始化DOM元素引用
     initDOM();
 
-    // 绑定事件
+    // 绑定事件监听器
     bindEvents();
 
     // 检查本地存储中的用户信息（先向后端确认用户存在）
     await checkLocalStorage();
 
-    // 应用启动时尝试连接后端（若已有连接则会被跳过）
+    // 应用启动时尝试连接WebSocket（若已有连接则会被跳过）
     connectWebSocket();
 });
 
-// 初始化DOM元素
+/**
+ * 初始化DOM元素引用
+ * 缓存所有需要频繁访问的DOM元素，提高性能
+ */
 function initDOM() {
-    // 容器
+    // 容器元素
     loginContainer = document.getElementById('login-container');
     registerContainer = document.getElementById('register-container');
     chatContainer = document.getElementById('chat-container');
     
-    // 表单
+    // 表单元素
     loginForm = document.getElementById('login-form');
     registerForm = document.getElementById('register-form');
     
@@ -72,10 +75,10 @@ function initDOM() {
     switchToRegisterBtn = document.getElementById('switch-to-register');
     switchToLoginBtn = document.getElementById('switch-to-login');
     
-    // 密码切换按钮
+    // 密码显示/隐藏按钮
     togglePasswordBtns = document.querySelectorAll('.toggle-password');
     
-    // 通知提示
+    // 通知提示元素
     toast = document.getElementById('toast');
     
     // 聊天相关元素
@@ -87,56 +90,54 @@ function initDOM() {
     tabBtns = document.querySelectorAll('.tab-btn');
     contactList = document.querySelector('.contact-list');
     chatContactName = document.getElementById('chat-contact-name');
+    
+    // 添加好友相关元素
     addFriendContainer = document.getElementById('add-friend-container');
     addFriendForm = document.getElementById('add-friend-form');
     addFriendOpenBtn = document.getElementById('add-friend-open');
     addFriendCancelBtn = document.getElementById('add-friend-cancel');
+    
+    // 好友请求相关元素
     friendRequestsContainer = document.getElementById('friend-requests-container');
     friendRequestsOpenBtn = document.getElementById('friend-requests-open');
     friendRequestsCancelBtn = document.getElementById('friend-requests-cancel');
     friendRequestsList = document.getElementById('friend-requests-list');
 }
 
-// 绑定事件
+/**
+ * 绑定所有事件监听器
+ */
 function bindEvents() {
     // 表单提交事件
     loginForm.addEventListener('submit', handleLogin);
     registerForm.addEventListener('submit', handleRegister);
     
     // 切换登录/注册界面
-    switchToRegisterBtn.addEventListener('click', () => {
-        showContainer('register');
-    });
+    switchToRegisterBtn.addEventListener('click', () => showContainer('register'));
+    switchToLoginBtn.addEventListener('click', () => showContainer('login'));
     
-    switchToLoginBtn.addEventListener('click', () => {
-        showContainer('login');
-    });
-    
-    // 密码显示/隐藏
+    // 密码显示/隐藏功能
     togglePasswordBtns.forEach(btn => {
         btn.addEventListener('click', togglePassword);
     });
 
-    // 添加好友相关
+    // 添加好友相关事件
     if (addFriendOpenBtn) {
-        addFriendOpenBtn.addEventListener('click', () => {
-            showContainer('add-friend');
-        });
+        addFriendOpenBtn.addEventListener('click', () => showContainer('add-friend'));
     }
-
+    if (addFriendForm) {
+        addFriendForm.addEventListener('submit', handleAddFriendSubmit);
+    }
+    if (addFriendCancelBtn) {
+        addFriendCancelBtn.addEventListener('click', () => showContainer('chat'));
+    }
+    
+    // 好友请求相关事件
     if (friendRequestsOpenBtn) {
         friendRequestsOpenBtn.addEventListener('click', () => {
             showContainer('friend-requests');
             loadFriendRequests();
         });
-    }
-
-    if (addFriendForm) {
-        addFriendForm.addEventListener('submit', handleAddFriendSubmit);
-    }
-
-    if (addFriendCancelBtn) {
-        addFriendCancelBtn.addEventListener('click', () => showContainer('chat'));
     }
     if (friendRequestsCancelBtn) {
         friendRequestsCancelBtn.addEventListener('click', () => showContainer('chat'));
@@ -150,20 +151,21 @@ function bindEvents() {
             sendMessage();
         }
     });
-    
-    // 自动调整输入框高度
     messageInput.addEventListener('input', autoResizeTextarea);
     
     // 登出事件
     logoutBtn.addEventListener('click', logout);
     
-    // 标签切换
+    // 标签切换事件
     tabBtns.forEach(btn => {
         btn.addEventListener('click', switchTab);
     });
 }
 
-// 显示指定容器
+/**
+ * 显示指定容器，隐藏其他所有容器
+ * @param {string} containerName - 要显示的容器名称
+ */
 function showContainer(containerName) {
     // 隐藏所有容器
     loginContainer.classList.remove('active');
@@ -192,7 +194,10 @@ function showContainer(containerName) {
     }
 }
 
-// 切换密码显示/隐藏
+/**
+ * 切换密码输入框的显示/隐藏状态
+ * @param {Event} e - 点击事件对象
+ */
 function togglePassword(e) {
     const btn = e.target;
     const input = btn.parentElement.querySelector('input[type="password"]');
@@ -208,13 +213,20 @@ function togglePassword(e) {
     }
 }
 
-// 自动调整输入框高度
+/**
+ * 自动调整文本输入框的高度，适应内容
+ * @this {HTMLTextAreaElement} - 调用该方法的文本输入框元素
+ */
 function autoResizeTextarea() {
     this.style.height = 'auto';
     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 }
 
-// 显示通知
+/**
+ * 显示通知提示
+ * @param {string} message - 通知内容
+ * @param {string} type - 通知类型：info, success, error
+ */
 function showToast(message, type = 'info') {
     toast.textContent = message;
     toast.className = `toast ${type} show`;
@@ -224,61 +236,69 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// 检查本地存储
-function checkLocalStorage() {
-    return (async () => {
-        const savedUser = localStorage.getItem('currentUser');
-        if (!savedUser) return;
+/**
+ * 检查本地存储中的用户信息，并验证其有效性
+ */
+async function checkLocalStorage() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (!savedUser) return;
 
-        const parsed = JSON.parse(savedUser);
+    const parsed = JSON.parse(savedUser);
 
-        try {
-            const response = await fetch(`${API_CONFIG.tcp.baseUrl}/user/exists`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: parsed.id })
-            });
+    try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/user/exists`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parsed.id })
+        });
 
-            if (!response.ok) {
-                // 后端返回错误（例如 4xx/5xx），不自动登录
-                const txt = await response.text();
-                console.error('User exists check failed:', response.status, txt);
-                showToast('无法验证用户，请重新登录', 'error');
-                removeUserFromStorage();
-                showContainer('login');
-                return;
-            }
-
-            const result = await response.json();
-            if (result.success && result.exists) {
-                currentUser = parsed;
-                showChatInterface();
-                connectWebSocket();
-            } else {
-                removeUserFromStorage();
-                showToast('本地用户未在服务器找到，请重新登录', 'error');
-                showContainer('login');
-            }
-        } catch (err) {
-            console.error('检查用户存在性时出错：', err);
-            showToast('无法连接到服务器，请检查网络', 'error');
+        if (!response.ok) {
+            // 后端返回错误，不自动登录
+            const txt = await response.text();
+            console.error('用户存在性检查失败:', response.status, txt);
+            showToast('无法验证用户，请重新登录', 'error');
             removeUserFromStorage();
             showContainer('login');
+            return;
         }
-    })();
+
+        const result = await response.json();
+        if (result.success && result.exists) {
+            currentUser = parsed;
+            showChatInterface();
+            connectWebSocket();
+        } else {
+            removeUserFromStorage();
+            showToast('本地用户未在服务器找到，请重新登录', 'error');
+            showContainer('login');
+        }
+    } catch (err) {
+        console.error('检查用户存在性时出错:', err);
+        showToast('无法连接到服务器，请检查网络', 'error');
+        removeUserFromStorage();
+        showContainer('login');
+    }
 }
 
-// 保存用户到本地存储
+/**
+ * 保存用户信息到本地存储
+ * @param {Object} user - 用户信息对象
+ */
 function saveUserToStorage(user) {
     localStorage.setItem('currentUser', JSON.stringify(user));
 }
 
-// 从本地存储移除用户
+/**
+ * 从本地存储移除用户信息
+ */
 function removeUserFromStorage() {
     localStorage.removeItem('currentUser');
 }
 
-// 处理登录
+/**
+ * 处理用户登录
+ * @param {Event} e - 表单提交事件
+ */
 async function handleLogin(e) {
     e.preventDefault();
     
@@ -286,17 +306,15 @@ async function handleLogin(e) {
     const password = document.getElementById('login-password').value;
     
     try {
-        // 统一使用TCP协议
-        const response = await fetch(`${API_CONFIG.tcp.baseUrl}/login`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/login`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
         });
+        
         if (!response.ok) {
             const text = await response.text();
-            console.error('Login failed:', response.status, text);
+            console.error('登录失败:', response.status, text);
             showToast(`登录失败：${response.status} ${text}`, 'error');
             return;
         }
@@ -306,7 +324,7 @@ async function handleLogin(e) {
             result = await response.json();
         } catch (err) {
             const text = await response.text();
-            console.error('Failed to parse login response as JSON:', err, text);
+            console.error('无法解析登录响应:', err, text);
             showToast('登录失败：服务器返回了无法解析的响应', 'error');
             return;
         }
@@ -322,26 +340,34 @@ async function handleLogin(e) {
             
             showToast('登录成功', 'success');
             showChatInterface();
-            // 若 websocket 已连接或未连接，确保发送 identify 给服务器以便接收定向通知
+            
+            // 连接WebSocket并发送身份标识
             connectWebSocket();
             try {
                 if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-                    wsConnection.send(JSON.stringify({ type: 'identify', user_id: currentUser.id, username: currentUser.username }));
+                    wsConnection.send(JSON.stringify({ 
+                        type: 'identify', 
+                        user_id: currentUser.id, 
+                        username: currentUser.username 
+                    }));
                 }
             } catch (e) {
-                // ignore
+                // 忽略发送错误
             }
         } else {
-            console.error('Login returned error payload:', result);
+            console.error('登录返回错误信息:', result);
             showToast(result.message || '登录失败', 'error');
         }
     } catch (error) {
         showToast('登录失败，请检查网络连接', 'error');
-        console.error('Login error:', error);
+        console.error('登录网络错误:', error);
     }
 }
 
-// 处理注册
+/**
+ * 处理用户注册
+ * @param {Event} e - 表单提交事件
+ */
 async function handleRegister(e) {
     e.preventDefault();
     
@@ -349,25 +375,22 @@ async function handleRegister(e) {
     const password = document.getElementById('register-password').value;
     const confirmPassword = document.getElementById('register-confirm-password').value;
     
-    // 验证密码
+    // 验证密码一致性
     if (password !== confirmPassword) {
         showToast('两次输入的密码不一致', 'error');
         return;
     }
     
     try {
-        // 统一使用TCP协议
-        const response = await fetch(`${API_CONFIG.tcp.baseUrl}/register`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/register`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
         });
-        // 如果返回非 2xx，先读取原始文本以便日志和提示
+        
         if (!response.ok) {
             const text = await response.text();
-            console.error('Register failed:', response.status, text);
+            console.error('注册失败:', response.status, text);
             showToast(`注册失败：${response.status} ${text}`, 'error');
             return;
         }
@@ -377,7 +400,7 @@ async function handleRegister(e) {
             result = await response.json();
         } catch (err) {
             const text = await response.text();
-            console.error('Failed to parse register response as JSON:', err, text);
+            console.error('无法解析注册响应:', err, text);
             showToast('注册失败：服务器返回了无法解析的响应', 'error');
             return;
         }
@@ -388,28 +411,34 @@ async function handleRegister(e) {
             // 清空注册表单
             registerForm.reset();
         } else {
-            console.error('Register returned error payload:', result);
+            console.error('注册返回错误信息:', result);
             showToast(result.message || '注册失败', 'error');
         }
     } catch (error) {
         showToast('注册失败，请检查网络连接', 'error');
-        console.error('Register error (network):', error);
+        console.error('注册网络错误:', error);
     }
 }
 
-// 处理WebSocket消息
+/**
+ * 处理WebSocket消息
+ * @param {string} message - WebSocket收到的消息
+ */
 function handleWebSocketMessage(message) {
     try {
         const data = JSON.parse(message);
         
         switch (data.type) {
             case 'message':
+                // 处理聊天消息
                 addMessageToChat(data);
                 break;
             case 'user_joined':
+                // 处理用户加入聊天
                 showToast(`${data.username} 加入了聊天`, 'info');
                 break;
             case 'friend_request':
+                // 处理好友请求通知
                 showToast('您收到新的好友请求', 'info');
                 if (currentUser) {
                     // 拉取收到的好友请求并缓存
@@ -427,12 +456,14 @@ function handleWebSocketMessage(message) {
                 }
                 break;
             case 'friend_added':
-                console.debug('ws friend_added received:', data);
+                // 处理好友添加成功通知
+                console.debug('收到好友添加成功通知:', data);
                 showToast('好友已添加，正在刷新好友列表', 'success');
                 // 刷新好友列表
                 loadFriendsList();
                 break;
             case 'user_left':
+                // 处理用户离开聊天
                 showToast(`${data.username} 离开了聊天`, 'info');
                 break;
             default:
@@ -467,34 +498,41 @@ function showChatInterface() {
     connectWebSocket();
 }
 
-// 连接WebSocket
+/**
+ * 连接WebSocket服务器
+ * 避免重复创建连接，自动重连机制
+ */
 function connectWebSocket() {
     // 避免重复创建连接：若已有连接处于连接中或已打开状态，则跳过
     if (wsConnection && (wsConnection.readyState === WebSocket.OPEN || wsConnection.readyState === WebSocket.CONNECTING)) {
         console.log('WebSocket 已在连接中或已连接，跳过新连接');
         return;
     }
+    
     try {
-        const wsUrl = API_CONFIG.tcp.wsUrl;
-        wsConnection = new WebSocket(wsUrl);
+        wsConnection = new WebSocket(API_CONFIG.WS_URL);
         
         wsConnection.onopen = () => {
             console.log('WebSocket连接成功');
             isConnected = true;
-            // 仅在已有登录用户时显示连接成功提示，避免启动或注册页面产生噪音
+            // 仅在已有登录用户时显示连接成功提示
             if (currentUser) {
                 showToast('WebSocket连接成功', 'success');
-                // 向服务器标识当前用户，便于接收定向通知（如好友请求）
+                // 向服务器标识当前用户，便于接收定向通知
                 try {
-                    wsConnection.send(JSON.stringify({ type: 'identify', user_id: currentUser.id, username: currentUser.username }));
+                    wsConnection.send(JSON.stringify({ 
+                        type: 'identify', 
+                        user_id: currentUser.id, 
+                        username: currentUser.username 
+                    }));
                 } catch (e) {
-                    console.warn('Failed to send identify over websocket', e);
+                    console.warn('发送身份标识失败:', e);
                 }
             }
         };
         
         wsConnection.onmessage = (event) => {
-            console.debug('WS raw message:', event.data);
+            console.debug('收到WebSocket消息:', event.data);
             handleWebSocketMessage(event.data);
         };
         
@@ -504,13 +542,9 @@ function connectWebSocket() {
             // 仅在用户已登录时显示连接关闭提示
             if (currentUser) {
                 showToast('WebSocket连接已关闭', 'info');
-            } else {
-                console.log('WebSocket closed (no current user)');
             }
-            // 尝试重连
-            setTimeout(() => {
-                connectWebSocket();
-            }, 5000);
+            // 5秒后尝试重连
+            setTimeout(() => connectWebSocket(), 5000);
         };
         
         wsConnection.onerror = (error) => {
@@ -519,8 +553,6 @@ function connectWebSocket() {
             // 仅在用户已登录时显示错误提示
             if (currentUser) {
                 showToast('WebSocket连接错误', 'error');
-            } else {
-                console.log('WebSocket error (no current user)');
             }
         };
     } catch (error) {
@@ -529,11 +561,14 @@ function connectWebSocket() {
     }
 }
 
-// 发送消息
+/**
+ * 发送聊天消息
+ */
 function sendMessage() {
     const content = messageInput.value.trim();
     if (!content || !currentChatContact) return;
     
+    // 构建消息对象
     const message = {
         type: 'message',
         content: content,
@@ -560,7 +595,10 @@ function sendMessage() {
     saveMessageToHistory(message);
 }
 
-// 添加消息到聊天界面
+/**
+ * 添加消息到聊天界面
+ * @param {Object} message - 消息对象
+ */
 function addMessageToChat(message) {
     const messageDiv = document.createElement('div');
     const isCurrentUser = message.sender_id === currentUser.id;
@@ -579,11 +617,15 @@ function addMessageToChat(message) {
     
     chatMessages.appendChild(messageDiv);
     
-    // 滚动到底部
+    // 滚动到底部，显示最新消息
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 格式化时间
+/**
+ * 格式化时间戳为本地时间字符串
+ * @param {number} timestamp - 时间戳
+ * @returns {string} 格式化后的时间字符串
+ */
 function formatTime(timestamp) {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('zh-CN', { 
@@ -592,7 +634,10 @@ function formatTime(timestamp) {
     });
 }
 
-// 保存消息到历史记录
+/**
+ * 保存消息到本地历史记录
+ * @param {Object} message - 消息对象
+ */
 function saveMessageToHistory(message) {
     let history = JSON.parse(localStorage.getItem('messageHistory') || '{}');
     
@@ -603,7 +648,7 @@ function saveMessageToHistory(message) {
     
     history[chatKey].push(message);
     
-    // 限制历史消息数量
+    // 限制历史消息数量为100条
     if (history[chatKey].length > 100) {
         history[chatKey] = history[chatKey].slice(-100);
     }
@@ -611,7 +656,10 @@ function saveMessageToHistory(message) {
     localStorage.setItem('messageHistory', JSON.stringify(history));
 }
 
-// 加载聊天历史
+/**
+ * 加载聊天历史记录
+ * @param {Object} contact - 聊天联系人对象
+ */
 function loadChatHistory(contact) {
     chatMessages.innerHTML = '';
     
@@ -625,15 +673,20 @@ function loadChatHistory(contact) {
     }
 }
 
-// 加载好友列表（模拟数据）
+/**
+ * 加载好友列表
+ * 优先从后端获取，失败时使用本地缓存
+ */
 function loadFriendsList() {
     // 清空联系人列表
     contactList.innerHTML = '';
-    // 若已登录，优先从后端获取好友列表
+    
+    // 从本地存储获取缓存的好友列表
     const stored = JSON.parse(localStorage.getItem('friendsList') || '[]');
+    
     if (currentUser) {
         try {
-            fetch(`${API_CONFIG.tcp.baseUrl}/get-friends`, {
+            fetch(`${API_CONFIG.BASE_URL}/get-friends`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: currentUser.id })
@@ -652,7 +705,7 @@ function loadFriendsList() {
                     localStorage.setItem('friendsList', JSON.stringify(friends));
                     friends.forEach(friend => contactList.appendChild(createContactItem(friend)));
                 } else if (stored && stored.length > 0) {
-                    // 渲染本地缓存时也去重
+                    // 渲染本地缓存（去重）
                     const seen = new Set();
                     stored.forEach(friend => {
                         if (seen.has(friend.id)) return;

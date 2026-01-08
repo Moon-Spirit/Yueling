@@ -99,8 +99,8 @@ pub async fn mark_messages_as_read_handler(
     }))
 }
 
-// 导出消息相关路由
-pub fn register_message_routes() -> Router<AppState> {
+/// 注册消息相关路由
+pub fn register_routes() -> Router<AppState> {
     Router::new()
         .route("/send-message", post(send_message_handler))
         .route("/messages/unread", post(get_unread_messages_handler))

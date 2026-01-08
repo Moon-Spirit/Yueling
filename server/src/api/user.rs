@@ -125,8 +125,8 @@ pub async fn user_exists_handler(
     }))
 }
 
-// 导出用户相关路由
-pub fn register_user_routes() -> Router<AppState> {
+/// 注册用户相关路由
+pub fn register_routes() -> Router<AppState> {
     Router::new()
         .route("/register", post(register_handler))
         .route("/login", post(login_handler))
