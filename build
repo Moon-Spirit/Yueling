@@ -1,5 +1,28 @@
 #!/usr/bin/env sh
-# 先构建 server
-cd server && cargo build
-# 再构建 Yueling
-cd ../Yueling && cargo tauri build
+
+echo "开始构建流程..."
+
+# 构建后端服务器
+echo "1. 构建后端服务器..."
+cd "$(dirname "$0")/server" || exit 1
+cargo build || {
+    echo "后端构建失败"
+    exit 1
+}
+
+# 构建前端
+echo -e "\n2. 构建前端..."
+cd "$(dirname "$0")/Yueling" || exit 1
+npm run build || {
+    echo "前端构建失败"
+    exit 1
+}
+
+# 构建 Tauri 应用
+echo -e "\n3. 构建 Tauri 应用..."
+cargo tauri build || {
+    echo "Tauri 构建失败"
+    exit 1
+}
+
+echo -e "\n全部构建完成!"
