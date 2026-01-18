@@ -216,6 +216,48 @@ body {
     align-items: center;
 }
 
+.input-wrapper.with-button {
+    padding-right: 48px;
+}
+
+.input-wrapper.with-button .search-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    border-radius: 10px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+
+.input-wrapper.with-button .search-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+
+.vertical-theme-toggle {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    height: 40px;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.vertical-theme-toggle i {
+    transform: rotate(90deg);
+}
+
 .input-wrapper input,
 .input-wrapper textarea {
     width: 100%;
@@ -229,6 +271,10 @@ body {
     font-family: inherit;
     line-height: 1.5;
     box-shadow: var(--shadow-sm);
+}
+
+.input-wrapper.with-button input {
+    padding-right: 60px;
 }
 
 .input-wrapper textarea {
@@ -505,6 +551,7 @@ body {
     flex-direction: column;
     backdrop-filter: blur(10px);
     transition: var(--transition);
+    overflow: hidden;
 }
 
 .sidebar-header {
@@ -536,6 +583,13 @@ body {
     align-items: center;
 }
 
+.avatar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 14px;
+}
+
 /* 现代化头像样式 */
 .avatar {
     width: 48px;
@@ -545,7 +599,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 14px;
     color: white;
     font-size: 20px;
     box-shadow: var(--shadow-md);
@@ -553,6 +606,18 @@ body {
     position: relative;
     overflow: hidden;
     cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.avatar-container .status {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
 }
 
 .avatar::before {
@@ -681,6 +746,61 @@ body {
     overflow-y: auto;
     padding: 8px 0;
     background: var(--bg-secondary);
+}
+
+.sidebar-footer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 24px;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.sidebar-footer .sidebar-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    width: fit-content;
+    margin: 0;
+}
+
+.sidebar-footer .sidebar-actions .btn-icon,
+.sidebar-footer .sidebar-actions .btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+}
+
+.sidebar-footer .sidebar-actions .vertical-theme-toggle {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    height: 40px;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+}
+
+.sidebar-footer .sidebar-actions .vertical-theme-toggle i {
+    transform: rotate(0deg);
 }
 
 .tab-content {

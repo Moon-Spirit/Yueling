@@ -98,37 +98,27 @@
         <aside class="sidebar">
           <div class="sidebar-header">
             <div class="user-info">
-              <div class="avatar" @click="showAvatarUpload">
-                <img v-if="currentUser?.avatar_url" :src="`${API_CONFIG.BASE_URL}${currentUser.avatar_url}`" :alt="currentUser.username" class="avatar-img">
-                <i v-else class="fas fa-user-circle avatar-icon"></i>
-                <input type="file" ref="avatarInput" style="display: none" accept="image/*" @change="handleAvatarChange">
+              <div class="avatar-container">
+                <div class="avatar" @click="showAvatarUpload">
+                  <img v-if="currentUser?.avatar_url" :src="`${API_CONFIG.BASE_URL}${currentUser.avatar_url}`" :alt="currentUser.username" class="avatar-img">
+                  <i v-else class="fas fa-user-circle avatar-icon"></i>
+                  <input type="file" ref="avatarInput" style="display: none" accept="image/*" @change="handleAvatarChange">
+                </div>
+                <span id="user-status" class="status online">在线</span>
               </div>
               <div class="user-details">
                 <h3 id="current-username">{{ currentUser?.username || '用户名' }}</h3>
-                <span id="user-status" class="status online">在线</span>
               </div>
-            </div>
-            <div class="sidebar-actions">
-              <button class="btn-icon" title="切换主题" @click="toggleTheme">
-                <i v-if="!isDarkMode" class="fas fa-moon"></i>
-                <i v-else class="fas fa-sun"></i>
-              </button>
-              <button id="add-friend-open" class="btn-icon" title="添加好友" @click="showAddFriend">
-                <i class="fas fa-user-plus"></i>
-              </button>
-              <button id="friend-requests-open" class="btn-icon" title="好友请求" @click="showFriendRequests">
-                <i class="fas fa-user-check"></i>
-              </button>
-              <button id="logout-btn" class="btn btn-secondary" @click="logout">
-                <i class="fas fa-sign-out-alt"></i>
-              </button>
             </div>
           </div>
           
           <div class="sidebar-search">
-            <div class="input-wrapper">
+            <div class="input-wrapper with-button">
               <i class="fas fa-search"></i>
               <input type="text" placeholder="搜索好友或群聊">
+              <button id="add-friend-open" class="btn-icon search-btn" title="添加好友" @click="showAddFriend">
+                <i class="fas fa-user-plus"></i>
+              </button>
             </div>
           </div>
           
@@ -179,6 +169,21 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+          
+          <div class="sidebar-footer">
+            <div class="sidebar-actions">
+              <button class="btn-icon vertical-theme-toggle" title="切换主题" @click="toggleTheme">
+                <i v-if="!isDarkMode" class="fas fa-moon"></i>
+                <i v-else class="fas fa-sun"></i>
+              </button>
+              <button id="friend-requests-open" class="btn-icon" title="好友请求" @click="showFriendRequests">
+                <i class="fas fa-user-check"></i>
+              </button>
+              <button id="logout-btn" class="btn btn-secondary" @click="logout">
+                <i class="fas fa-sign-out-alt"></i>
+              </button>
             </div>
           </div>
         </aside>
