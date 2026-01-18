@@ -11,7 +11,7 @@ rcgen = "0.14.6"
 uuid = { version = "1.19.0", features = ["v4"] }
 tokio = { version = "1.49", features = ["full"] }
 anyhow = "1.0.75"
-bcrypt = "0.17.1"
+bcrypt = "0.18.0"
 rusqlite = { version = "0.38.0", features = ["bundled"] }
 serde = "1.0.228"
 axum = { version = "0.8.8", features = ["ws", "multipart"] }
