@@ -1,10 +1,15 @@
-use axum::{extract::{State}, response::Json, routing::{post}, Router};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use crate::storage::DbPool;
+use axum::{
+    extract::{State}, 
+    response::Json, 
+    routing::{post}, 
+    Router
+};
+use serde::{
+    Deserialize, 
+    Serialize
+};
+use serde_json::{json};
 use crate::error::AppError;
-use std::collections::hash_map::Entry;
-use hex;
 
 // 共享应用状态
 use super::AppState;
@@ -268,7 +273,7 @@ pub async fn respond_to_friend_request_handler(
         .to_string();
 
         // 尝试向发送者和接收者发送通知（如果他们通过 websocket 标识并连接）
-        let mut clients = state.get_clients().lock().unwrap();
+        let clients = state.get_clients().lock().unwrap();
         if let Some(tx) = clients.get(&friendship.friend_id) {
             println!("Sending friend_added notify to {}: {}", friendship.friend_id, notify);
             let _ = tx.send(notify.clone());

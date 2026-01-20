@@ -1,6 +1,3 @@
-mod loader;
-mod settings;
+pub mod loader;
+pub mod settings;
 
-// 重新导出子模块的内容
-pub use loader::*;
-pub use settings::*;

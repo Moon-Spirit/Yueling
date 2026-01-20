@@ -1,6 +1,16 @@
-use axum::{extract::{State}, response::Json, routing::{get, post}, Router};
-use serde::{Deserialize, Serialize};
-use crate::storage::{DbPool, Message};
+use axum::{
+    extract::{State}, 
+    response::Json, 
+    routing::{post}, 
+    Router
+};
+use serde::{
+    Deserialize, 
+    Serialize
+};
+use crate::storage::{
+    Message
+};
 use crate::error::AppError;
 
 // 共享应用状态
@@ -77,7 +87,7 @@ pub async fn get_unread_messages_handler(
     State(state): State<AppState>,
     Json(req): Json<GetUnreadMessagesRequest>,
 ) -> Result<Json<GetUnreadMessagesResponse>, AppError> {
-    let mut messages = state.db_pool.get_unread_messages(&req.user_id)
+    let messages = state.db_pool.get_unread_messages(&req.user_id)
         .map_err(|e| AppError::Database(e.to_string()))?;
     
 
