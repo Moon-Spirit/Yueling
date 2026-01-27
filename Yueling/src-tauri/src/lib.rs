@@ -2,6 +2,10 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::thread::Builder;
+use tauri::Builder;
+use tauri::plugin::Builder;
+use tauri_plugin_opener::Builder;
 
 // 聊天客户端状态
 struct ChatClient {
