@@ -25,6 +25,8 @@ jobs:
       # 设置Rust环境
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc,x86_64-apple-darwin,x86_64-unknown-linux-gnu
 
       # 安装Android SDK
       - name: Set up Android SDK
@@ -89,7 +91,7 @@ jobs:
           tag_name: v${{ github.run_number }}
           release_name: Release v${{ github.run_number }}
           draft: false
-          prerelease: false
+          prerelease: true
 
       # 上传Android APK
       - name: Upload Android APK
