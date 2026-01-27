@@ -48,14 +48,20 @@ jobs:
       - name: Build Android APK
         run: cargo tauri android build
         working-directory: ./Yueling
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      # 构建桌面端
-      - name: Build desktop
-        run: cargo tauri build
+      # 构建Windows桌面端
+      - name: Build Windows desktop
+        run: cargo tauri build --target x86_64-pc-windows-msvc
+        working-directory: ./Yueling
+
+      # 构建Mac OS桌面端
+      - name: Build Mac OS desktop
+        run: cargo tauri build --target x86_64-apple-darwin
+        working-directory: ./Yueling
+
+      # 构建Linux桌面端
+      - name: Build Linux desktop
+        run: cargo tauri build --target x86_64-unknown-linux-gnu
         working-directory: ./Yueling
 
       # 构建后端
@@ -69,7 +75,7 @@ jobs:
         with:
           name: build-artifacts
           path: |
-            ./Yueling/src-tauri/target/release/bundle/
+            ./Yueling/src-tauri/target/
             ./server/target/release/server
 
       # 创建GitHub Release
@@ -85,8 +91,8 @@ jobs:
           draft: false
           prerelease: false
 
-      # 上传Release资产
-      - name: Upload Release Assets
+      # 上传Android APK
+      - name: Upload Android APK
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-release-asset@v1
         env:
@@ -97,17 +103,43 @@ jobs:
           asset_name: yueling-${{ github.run_number }}.apk
           asset_content_type: application/vnd.android.package-archive
 
-      - name: Upload Desktop Assets
+      # 上传Windows安装包
+      - name: Upload Windows MSI
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./Yueling/src-tauri/target/release/bundle/msi/yueling_0.1.0_x64_en-US.msi
-          asset_name: yueling-${{ github.run_number }}.msi
+          asset_path: ./Yueling/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/yueling_0.1.0_x64_en-US.msi
+          asset_name: yueling-${{ github.run_number }}-windows.msi
           asset_content_type: application/x-msi
 
+      # 上传Mac OS安装包
+      - name: Upload Mac OS DMG
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Yueling/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/yueling_0.1.0_x64.dmg
+          asset_name: yueling-${{ github.run_number }}-macos.dmg
+          asset_content_type: application/x-apple-diskimage
+
+      # 上传Linux安装包
+      - name: Upload Linux DEB
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Yueling/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/yueling_0.1.0_amd64.deb
+          asset_name: yueling-${{ github.run_number }}-linux.deb
+          asset_content_type: application/x-debian-package
+
+      # 上传后端可执行文件
       - name: Upload Backend Asset
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-release-asset@v1
