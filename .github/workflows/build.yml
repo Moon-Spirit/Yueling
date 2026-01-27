@@ -155,8 +155,8 @@ jobs:
         uses: android-actions/setup-android@v3
 
       # 安装Tauri CLI
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli
+      - name: Install Tauri CLI 
+        run: cargo install tauri-cli --version "^2.0.0" --locked
 
       # 构建Android APK
       - name: Build Android APK
@@ -212,7 +212,7 @@ jobs:
 
       # 安装Tauri CLI
       - name: Install Tauri CLI
-        run: cargo install tauri-cli
+        run: cargo install tauri-cli --version "^2.0.0" --locked
 
       # 构建Linux
       - name: Build Linux
@@ -264,7 +264,7 @@ jobs:
 
       # 安装Tauri CLI
       - name: Install Tauri CLI
-        run: cargo install tauri-cli
+        run: cargo install tauri-cli --version "^2.0.0" --locked
 
       # 构建Windows
       - name: Build Windows
@@ -316,7 +316,7 @@ jobs:
 
       # 安装Tauri CLI
       - name: Install Tauri CLI
-        run: cargo install tauri-cli
+        run: cargo install tauri-cli --version "^2.0.0" --locked
 
       # 构建Mac OS
       - name: Build Mac OS
@@ -376,7 +376,7 @@ jobs:
 
       # 安装Tauri CLI
       - name: Install Tauri CLI
-        run: cargo install tauri-cli
+        run: cargo install tauri-cli --version "^2.0.0" --locked
 
       # 构建iOS
       - name: Build iOS
