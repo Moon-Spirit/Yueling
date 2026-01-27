@@ -46,8 +46,8 @@ jobs:
           name: frontend-build
           path: ./Yueling/dist
 
-  # 构建后端
-  build-backend:
+  # 构建后端 (Ubuntu)
+  build-backend-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,8 +77,42 @@ jobs:
       - name: Upload backend build
         uses: actions/upload-artifact@v4
         with:
-          name: backend-build
+          name: backend-build-ubuntu
           path: ./server/target/release/server
+
+  # 构建后端 (Windows)
+  build-backend-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 设置Rust环境
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # 缓存Rust依赖
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ./server/target
+          key: ${{ runner.os }}-cargo-backend-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-backend-
+
+      # 构建后端
+      - name: Build backend
+        run: cargo build --release
+        working-directory: ./server
+
+      # 上传后端构建产物
+      - name: Upload backend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build-windows
+          path: ./server/target/release/server.exe
 
   # 构建Android
   build-android:
@@ -359,7 +393,7 @@ jobs:
   # 创建Release
   create-release:
     runs-on: ubuntu-latest
-    needs: [build-backend, build-android, build-linux, build-windows, build-macos, build-ios]
+    needs: [build-backend-ubuntu, build-backend-windows, build-android, build-linux, build-windows, build-macos, build-ios]
     permissions:
       contents: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -385,15 +419,26 @@ jobs:
           draft: false
           prerelease: true
 
-      # 上传后端可执行文件
-      - name: Upload Backend Asset
+      # 上传后端可执行文件 (Ubuntu)
+      - name: Upload Backend Asset (Ubuntu)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/backend-build/server
-          asset_name: server-${{ github.run_number }}
+          asset_path: ./artifacts/backend-build-ubuntu/server
+          asset_name: server-${{ github.run_number }}-ubuntu
+          asset_content_type: application/octet-stream
+
+      # 上传后端可执行文件 (Windows)
+      - name: Upload Backend Asset (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/backend-build-windows/server.exe
+          asset_name: server-${{ github.run_number }}-windows.exe
           asset_content_type: application/octet-stream
 
       # 上传Android APK
