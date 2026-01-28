@@ -459,7 +459,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/android-build
+          asset_path: ./artifacts/android-build/app-universal-release-unsigned.apk
           asset_name: yueling-${{ github.run_number }}.apk
           asset_content_type: application/vnd.android.package-archive
 
@@ -470,7 +470,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/linux-build
+          asset_path: ./artifacts/linux-build/yueling_0.1.0_amd64.deb
           asset_name: yueling-${{ github.run_number }}-linux.deb
           asset_content_type: application/x-debian-package
 
@@ -481,7 +481,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/windows-build
+          asset_path: ./artifacts/windows-build/yueling_0.1.0_x64_en-US.msi
           asset_name: yueling-${{ github.run_number }}-windows.msi
           asset_content_type: application/x-msi
 
@@ -503,6 +503,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/ios-build
+          asset_path: ./artifacts/ios-build/yueling.app
           asset_name: yueling-${{ github.run_number }}-ios-simulator.app
           asset_content_type: application/octet-stream
