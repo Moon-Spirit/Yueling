@@ -328,7 +328,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: ./Yueling/src-tauri/target/release/bundle/dmg
+          path: ./Yueling/src-tauri/target/release/bundle/dmg/yueling_0.1.0_x64.dmg
 
   # 创建Release
   create-release:
@@ -354,8 +354,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
+          tag_name: v0.1.${{ github.run_number }}
+          release_name: Release v0.1.${{ github.run_number }}
           draft: false
           prerelease: true
 
@@ -367,7 +367,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./artifacts/backend-build-ubuntu/server
-          asset_name: server-${{ github.run_number }}-ubuntu
+          asset_name: server-0.1.${{ github.run_number }}-ubuntu
           asset_content_type: application/octet-stream
 
       # 上传后端可执行文件 (Windows)
@@ -378,7 +378,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./artifacts/backend-build-windows/server.exe
-          asset_name: server-${{ github.run_number }}-windows.exe
+          asset_name: server-0.1.${{ github.run_number }}-windows.exe
           asset_content_type: application/octet-stream
 
       # 上传Android APK
@@ -389,7 +389,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./artifacts/android-build/app-universal-release-unsigned.apk
-          asset_name: yueling-${{ github.run_number }}.apk
+          asset_name: yueling-0.1.${{ github.run_number }}.apk
           asset_content_type: application/vnd.android.package-archive
 
       # 上传Linux安装包
@@ -400,7 +400,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./artifacts/linux-build/yueling_0.1.0_amd64.deb
-          asset_name: yueling-${{ github.run_number }}-linux.deb
+          asset_name: yueling-0.1.${{ github.run_number }}-linux.deb
           asset_content_type: application/x-debian-package
 
       # 上传Windows安装包
@@ -411,7 +411,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./artifacts/windows-build/yueling_0.1.0_x64_en-US.msi
-          asset_name: yueling-${{ github.run_number }}-windows.msi
+          asset_name: yueling-0.1.${{ github.run_number }}-windows.msi
           asset_content_type: application/x-msi
 
       # 上传Mac OS安装包
@@ -421,6 +421,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/macos-build
-          asset_name: yueling-${{ github.run_number }}-macos.dmg
+          asset_path: ./artifacts/macos-build/yueling_0.1.0_x64.dmg
+          asset_name: yueling-0.1.${{ github.run_number }}-macos.dmg
           asset_content_type: application/x-apple-diskimage
