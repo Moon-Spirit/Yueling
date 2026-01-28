@@ -168,7 +168,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-build
-          path: ./Yueling/src-tauri/gen/android/app/build/outputs/apk/universal/release
+          path: ./Yueling/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
 
   # 构建Linux
   build-linux:
@@ -224,7 +224,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: ./Yueling/src-tauri/target/release/bundle/deb
+          path: ./Yueling/src-tauri/target/release/bundle/deb/yueling_0.1.0_amd64.deb
 
   # 构建Windows
   build-windows:
@@ -276,7 +276,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: ./Yueling/src-tauri/target/release/bundle/msi
+          path: ./Yueling/src-tauri/target/release/bundle/msi/yueling_0.1.0_x64_en-US.msi
 
   # 构建Mac OS
   build-macos:
@@ -328,7 +328,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: ./Yueling/src-tauri/target/release/bundle/dmg
+          path: ./Yueling/src-tauri/target/release/bundle/dmg/yueling_0.1.0_x64.dmg
 
   # 构建iOS
   build-ios:
@@ -378,17 +378,26 @@ jobs:
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2.0.0" --locked
 
+      # 初始化iOS项目
+      - name: Initialize iOS project
+        run: cargo tauri ios init
+        working-directory: ./Yueling
+
       # 构建iOS
       - name: Build iOS
         run: cargo tauri ios build
         working-directory: ./Yueling
+        env:
+          # 注意：在实际使用中，需要设置APPLE_DEVELOPMENT_TEAM环境变量
+          # 这里仅作为示例，实际构建需要有效的开发者证书
+          APPLE_DEVELOPMENT_TEAM: "YOUR_TEAM_ID"
 
       # 上传iOS构建产物
       - name: Upload iOS build
         uses: actions/upload-artifact@v4
         with:
           name: ios-build
-          path: ./Yueling/src-tauri/gen/ios
+          path: ./Yueling/src-tauri/gen/ios/build/Products/Release-iphoneos/yueling.ipa
 
   # 创建Release
   create-release:
@@ -448,7 +457,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/android-build/app-universal-release-unsigned.apk
+          asset_path: ./artifacts/android-build
           asset_name: yueling-${{ github.run_number }}.apk
           asset_content_type: application/vnd.android.package-archive
 
@@ -459,7 +468,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/linux-build/yueling_0.1.0_amd64.deb
+          asset_path: ./artifacts/linux-build
           asset_name: yueling-${{ github.run_number }}-linux.deb
           asset_content_type: application/x-debian-package
 
@@ -470,7 +479,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/windows-build/yueling_0.1.0_x64_en-US.msi
+          asset_path: ./artifacts/windows-build
           asset_name: yueling-${{ github.run_number }}-windows.msi
           asset_content_type: application/x-msi
 
@@ -481,7 +490,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/macos-build/yueling_0.1.0_x64.dmg
+          asset_path: ./artifacts/macos-build
           asset_name: yueling-${{ github.run_number }}-macos.dmg
           asset_content_type: application/x-apple-diskimage
 
@@ -492,6 +501,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/ios-build/build/Products/Release-iphoneos/yueling.ipa
+          asset_path: ./artifacts/ios-build
           asset_name: yueling-${{ github.run_number }}-ios.ipa
           asset_content_type: application/octet-stream
