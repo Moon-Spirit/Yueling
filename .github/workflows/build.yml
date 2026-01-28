@@ -328,7 +328,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: ./Yueling/src-tauri/target/release/bundle/dmg/yueling_0.1.0_x64.dmg
+          path: ./Yueling/src-tauri/target/release/bundle/dmg
 
   # 构建iOS
   build-ios:
@@ -492,7 +492,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/macos-build
+          asset_path: ./artifacts/macos-build/yueling_0.1.0_x64.dmg
           asset_name: yueling-${{ github.run_number }}-macos.dmg
           asset_content_type: application/x-apple-diskimage
 
