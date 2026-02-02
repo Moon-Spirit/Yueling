@@ -83,7 +83,8 @@ impl DbPool {
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
-                avatar_url TEXT DEFAULT ''
+                avatar_url TEXT DEFAULT '',
+                user_data TEXT
             )",
             [],
         )?;
@@ -137,10 +138,12 @@ impl DbPool {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS groups (
                 id TEXT PRIMARY KEY,
+                group_id TEXT NOT NULL,
                 name TEXT NOT NULL,
                 creator_id TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
-                FOREIGN KEY(creator_id) REFERENCES users(id)
+                FOREIGN KEY(creator_id) REFERENCES users(id),
+                group_user_list: TEXT
             )",
             [],
         )?;

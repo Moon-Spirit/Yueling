@@ -35,6 +35,7 @@ pub struct AppState {
     client_user_map: Arc<Mutex<HashMap<String, String>>>,
     /// 全局广播通道，用于向所有客户端发送消息
     broadcaster: broadcast::Sender<String>,
+    pub group_chat_broadcast_channel_map: Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>,
 }
 
 impl AppState {
@@ -46,6 +47,7 @@ impl AppState {
             clients: Arc::new(Mutex::new(HashMap::new())),
             client_user_map: Arc::new(Mutex::new(HashMap::new())),
             broadcaster,
+            group_chat_broadcast_channel_map: Arc::new(Mutex::new(HashMap::new()))
         }
     }
     
