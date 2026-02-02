@@ -11,13 +11,14 @@ call cargo build || (echo 后端构建失败 & exit /b 1)
 
 REM 补全前端环境
 echo.
-echo 2. 补全前端环境...
+echo 2. 正在补全前端环境...
 cd /d "%~dp0Yueling"
-call npm install || (echo 前端环境补全失败 & exit /b 1)
+call npm install || (echo 补全失败 & exit /b 1)
 
-REM 构建前端应用
+REM 补全前端环境
 echo.
-echo 3. 构建前端应用...
+echo 2. 构建前端...
+cd /d "%~dp0Yueling"
 call npm run build || (echo 前端构建失败 & exit /b 1)
 
 REM 构建 Tauri 应用
