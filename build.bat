@@ -15,9 +15,10 @@ echo 2. 正在补全前端环境...
 cd /d "%~dp0Yueling"
 call npm install || (echo 补全失败 & exit /b 1)
 
-REM 构建前端
+REM 补全前端环境
 echo.
-echo 3. 构建前端...
+echo 2. 构建前端...
+cd /d "%~dp0Yueling"
 call npm run build || (echo 前端构建失败 & exit /b 1)
 
 REM 构建 Tauri 应用
