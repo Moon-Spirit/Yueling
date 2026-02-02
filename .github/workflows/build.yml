@@ -328,7 +328,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: ./Yueling/src-tauri/target/release/bundle/dmg/yueling_0.1.0_x64.dmg
+          path: ./Yueling/src-tauri/target/release/bundle/dmg
 
   # 创建Release
   create-release:
@@ -336,7 +336,7 @@ jobs:
     needs: [build-backend-ubuntu, build-backend-windows, build-android, build-linux, build-windows, build-macos]
     permissions:
       contents: write
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4
@@ -421,6 +421,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/macos-build/yueling_0.1.0_x64.dmg
+          asset_path: ./artifacts/macos-build
           asset_name: yueling-0.1.${{ github.run_number }}-macos.dmg
           asset_content_type: application/x-apple-diskimage
