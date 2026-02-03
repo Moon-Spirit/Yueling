@@ -1,119 +1,139 @@
-import { api } from './api'
+// 好友服务
+// 提供好友管理、好友请求处理等功能
+import { apiClient } from './apiClient';
 
 export interface Friend {
-    id: string
-    name: string
-    status: 'online' | 'offline'
-    avatar_url?: string
+    id: string;
+    name: string;
+    status: 'online' | 'offline';
+    avatarUrl?: string;
 }
 
 export interface FriendRequest {
-    id: string
-    from_user_id: string
-    from_username?: string
-    created_at: number
+    id: string;
+    fromUserId: string;
+    fromUsername?: string;
+    createdAt: number;
 }
 
 export class FriendService {
-    private friends: Friend[] = []
-    private friendRequests: FriendRequest[] = []
+    private friends: Friend[] = [];
+    private friendRequests: FriendRequest[] = [];
 
+    /**
+     * 加载好友列表
+     * @param userId 用户ID
+     * @returns 好友列表
+     */
     async loadFriends(userId: string): Promise<Friend[]> {
         try {
-            const result = await api.post('/get-friends', { user_id: userId })
-            if (result.success && Array.isArray(result.friends)) {
-                this.friends = result.friends.map((f: any) => ({
-                    id: f.id,
-                    name: f.username,
-                    status: 'online',
-                    avatar_url: f.avatar_url
-                }))
-                this.saveFriendsToStorage()
-                return this.friends
-            }
+            const friends = await apiClient.getFriends(userId);
+            this.friends = friends;
+            this.saveFriendsToStorage();
+            return this.friends;
         } catch (error) {
-            console.error('加载好友列表失败:', error)
+            console.error('加载好友列表失败:', error);
         }
         // 回退到本地存储
-        const stored = this.loadFriendsFromStorage()
-        this.friends = stored
-        return stored
+        const stored = this.loadFriendsFromStorage();
+        this.friends = stored;
+        return stored;
     }
 
+    /**
+     * 添加好友
+     * @param fromUserId 发起用户ID
+     * @param toUsername 目标用户名
+     * @param displayName 显示名称
+     * @param note 备注
+     */
     async addFriend(fromUserId: string, toUsername: string, displayName?: string, note?: string): Promise<void> {
-        const result = await api.post('/friends/add', {
-            from_user_id: fromUserId,
-            to_username: toUsername,
-            display_name: displayName || '',
-            note: note || ''
-        })
-        if (!result.success) {
-            throw new Error(result.message || '添加好友失败')
-        }
+        await apiClient.addFriend({
+            fromUserId,
+            toUsername,
+            displayName,
+            note
+        });
     }
 
+    /**
+     * 加载好友请求
+     * @param userId 用户ID
+     * @returns 好友请求列表
+     */
     async loadFriendRequests(userId: string): Promise<FriendRequest[]> {
         try {
-            const result = await api.post('/get-friend-requests', { user_id: userId })
-            if (result.success && Array.isArray(result.requests)) {
-                this.friendRequests = result.requests
-                this.saveFriendRequestsToStorage()
-                return this.friendRequests
-            }
+            const requests = await apiClient.getFriendRequests(userId);
+            this.friendRequests = requests;
+            this.saveFriendRequestsToStorage();
+            return this.friendRequests;
         } catch (error) {
-            console.error('加载好友请求失败:', error)
+            console.error('加载好友请求失败:', error);
         }
         // 回退到本地存储
-        const stored = this.loadFriendRequestsFromStorage()
-        this.friendRequests = stored
-        return stored
+        const stored = this.loadFriendRequestsFromStorage();
+        this.friendRequests = stored;
+        return stored;
     }
 
+    /**
+     * 响应好友请求
+     * @param requestId 请求ID
+     * @param userId 用户ID
+     * @param response 响应类型
+     */
     async respondToFriendRequest(requestId: string, userId: string, response: 'accepted' | 'rejected'): Promise<void> {
-        const result = await api.post('/respond-to-friend-request', {
-            request_id: requestId,
-            user_id: userId,
-            response
-        })
-        if (!result.success) {
-            throw new Error(result.message || '处理好友请求失败')
-        }
+        await apiClient.respondToFriendRequest(requestId, userId, response);
         // 从本地列表中移除
-        this.friendRequests = this.friendRequests.filter(req => req.id !== requestId)
-        this.saveFriendRequestsToStorage()
+        this.friendRequests = this.friendRequests.filter(req => req.id !== requestId);
+        this.saveFriendRequestsToStorage();
     }
 
-    private saveFriendsToStorage() {
-        localStorage.setItem('friendsList', JSON.stringify(this.friends))
+    /**
+     * 保存好友列表到本地存储
+     */
+    private saveFriendsToStorage(): void {
+        localStorage.setItem('friendsList', JSON.stringify(this.friends));
     }
 
+    /**
+     * 从本地存储加载好友列表
+     * @returns 好友列表
+     */
     private loadFriendsFromStorage(): Friend[] {
-        const stored = localStorage.getItem('friendsList')
+        const stored = localStorage.getItem('friendsList');
         if (stored) {
             try {
-                return JSON.parse(stored)
+                return JSON.parse(stored);
             } catch (e) {
-                console.error('Failed to parse friends list', e)
+                console.error('解析好友列表失败:', e);
             }
         }
-        return []
+        return [];
     }
 
-    private saveFriendRequestsToStorage() {
-        localStorage.setItem('receivedFriendRequests', JSON.stringify(this.friendRequests))
+    /**
+     * 保存好友请求到本地存储
+     */
+    private saveFriendRequestsToStorage(): void {
+        localStorage.setItem('receivedFriendRequests', JSON.stringify(this.friendRequests));
     }
 
+    /**
+     * 从本地存储加载好友请求
+     * @returns 好友请求列表
+     */
     private loadFriendRequestsFromStorage(): FriendRequest[] {
-        const stored = localStorage.getItem('receivedFriendRequests')
+        const stored = localStorage.getItem('receivedFriendRequests');
         if (stored) {
             try {
-                return JSON.parse(stored)
+                return JSON.parse(stored);
             } catch (e) {
-                console.error('Failed to parse friend requests', e)
+                console.error('解析好友请求失败:', e);
             }
         }
-        return []
+        return [];
     }
 }
 
-export const friendService = new FriendService()
+export const friendService = new FriendService();

@@ -100,7 +100,7 @@
             <div class="user-info">
               <div class="avatar-container">
                 <div class="avatar" @click="handleAvatarClick">
-                  <img v-if="currentUser?.avatar_url" :src="`${API_CONFIG.BASE_URL}${currentUser.avatar_url}`" :alt="currentUser.username" class="avatar-img">
+                  <img v-if="currentUser?.avatarUrl" :src="`${apiConfig.baseUrl}${currentUser.avatarUrl}`" :alt="currentUser.username" class="avatar-img">
                   <i v-else class="fas fa-user-circle avatar-icon"></i>
                   <input type="file" ref="avatarInput" style="display: none" accept="image/*" @change="handleAvatarChange">
                 </div>
@@ -139,7 +139,7 @@
               <div class="contact-list">
                 <div v-for="friend in friends" :key="friend.id" class="contact-item" :class="{ active: selectedContact?.id === friend.id }" @click="selectContact(friend); if (isMobile) showSidebar = false">
                   <div class="avatar">
-                    <img v-if="friend.avatar_url" :src="`${API_CONFIG.BASE_URL}${friend.avatar_url}`" :alt="friend.name" class="avatar-img">
+                    <img v-if="friend.avatarUrl" :src="`${apiConfig.baseUrl}${friend.avatarUrl}`" :alt="friend.name" class="avatar-img">
                     <i v-else class="fas fa-user-circle avatar-icon"></i>
                   </div>
                   <div class="contact-info">
@@ -197,7 +197,7 @@
               </button>
               <div class="contact-info">
                 <div class="avatar">
-                  <img v-if="selectedContact?.avatar_url" :src="`${API_CONFIG.BASE_URL}${selectedContact.avatar_url}`" :alt="selectedContact.name" class="avatar-img">
+                  <img v-if="selectedContact?.avatarUrl" :src="`${apiConfig.baseUrl}${selectedContact.avatarUrl}`" :alt="selectedContact.name" class="avatar-img">
                   <i v-else class="fas fa-user-circle avatar-icon"></i>
                 </div>
                 <div class="contact-details">
@@ -214,7 +214,7 @@
           </div>
           
           <div class="chat-messages" id="chat-messages">
-            <div v-for="message in messages" :key="message.id" :class="['message', message.sender_id === currentUser?.id ? 'user' : 'other']">
+            <div v-for="message in messages" :key="message.id" :class="['message', message.senderId === currentUser?.id ? 'user' : 'other']">
               <div class="message-content">{{ message.content }}</div>
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
             </div>
@@ -313,8 +313,8 @@
                 <div v-for="request in friendRequests" :key="request.id" class="friend-request-item">
                   <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                      <div><strong>{{ request.from_username || request.from_user_id || '未知用户' }}</strong></div>
-                      <div style="font-size:12px;color:#666;margin-top:4px;">请求时间：{{ formatRequestTime(request.created_at) }}</div>
+                      <div><strong>{{ request.fromUsername || request.fromUserId || '未知用户' }}</strong></div>
+                      <div style="font-size:12px;color:#666;margin-top:4px;">请求时间：{{ formatRequestTime(request.createdAt) }}</div>
                     </div>
                     <div style="display:flex;gap:12px;">
                       <button class="btn btn-accept" @click="respondToFriendRequest(request.id, 'accepted')">接受</button>
@@ -345,7 +345,7 @@
           <div class="form-group" style="text-align: center;">
             <div class="avatar-container" style="display: inline-block; margin-bottom: 20px;">
               <div class="avatar" @click="showAvatarUpload" style="width: 120px; height: 120px;">
-                <img v-if="currentUser?.avatar_url" :src="`${API_CONFIG.BASE_URL}${currentUser.avatar_url}`" :alt="currentUser.username" class="avatar-img" style="width: 100%; height: 100%;">
+                <img v-if="currentUser?.avatarUrl" :src="`${apiConfig.baseUrl}${currentUser.avatarUrl}`" :alt="currentUser.username" class="avatar-img" style="width: 100%; height: 100%;">
                 <i v-else class="fas fa-user-circle avatar-icon" style="font-size: 120px;"></i>
                 <input type="file" ref="avatarInput" style="display: none" accept="image/*" @change="handleAvatarChange">
               </div>
@@ -389,7 +389,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue'
-import { API_CONFIG } from './config/api'
+import { apiConfig } from './config/api'
 import { authService } from './services/auth'
 import { friendService } from './services/friend'
 import { websocketService } from './services/websocket'
@@ -397,7 +397,7 @@ import { websocketService } from './services/websocket'
 interface User {
   id: string
   username: string
-  avatar_url?: string
+  avatarUrl?: string
 }
 
 interface Contact {
@@ -405,21 +405,21 @@ interface Contact {
   name: string
   status: string
   memberCount?: number
-  avatar_url?: string
+  avatarUrl?: string
 }
 
 interface Message {
   id?: string
   content: string
-  sender_id: string
+  senderId: string
   timestamp: number
 }
 
 interface FriendRequest {
   id: string
-  from_user_id: string
-  from_username?: string
-  created_at: number
+  fromUserId: string
+  fromUsername?: string
+  createdAt: number
 }
 
 export default defineComponent({
@@ -563,7 +563,7 @@ export default defineComponent({
       if (!newMessage.value.trim() || !selectedContact.value || !currentUser.value) return
       const message: Message = {
         content: newMessage.value,
-        sender_id: currentUser.value.id,
+        senderId: currentUser.value.id,
         timestamp: Date.now(),
       }
       messages.value.push(message)
@@ -700,8 +700,8 @@ export default defineComponent({
           showToast('头像上传成功', 'success')
           // 重新加载用户信息
           const userInfo = await authService.getUserInfo(currentUser.value.id)
-          if (userInfo.avatar_url) {
-            currentUser.value.avatar_url = userInfo.avatar_url
+          if (userInfo.avatarUrl) {
+            currentUser.value.avatarUrl = userInfo.avatarUrl
           }
         } catch (error: any) {
           showToast(error.message || '头像上传失败', 'error')
@@ -719,7 +719,7 @@ export default defineComponent({
           id: f.id,
           name: f.name,
           status: f.status,
-          avatar_url: f.avatar_url
+          avatarUrl: f.avatarUrl
         }))
       } catch (error) {
         console.error('加载好友列表失败:', error)
@@ -739,7 +739,7 @@ export default defineComponent({
     const checkServer = () => {
       console.log('开始检查服务器连接...')
       // 尝试 HTTP 连接
-      fetch(`${API_CONFIG.BASE_URL}/login`, { method: 'GET' })
+      fetch(`${apiConfig.baseUrl}/login`, { method: 'GET' })
         .then(response => {
           console.log('HTTP 响应状态:', response.status)
           if (response.ok || response.status === 405) {
@@ -770,7 +770,7 @@ export default defineComponent({
           console.warn('HTTP 检测失败:', err)
           // HTTP 失败，尝试 WebSocket
           console.log('尝试 WebSocket 连接...')
-          const ws = new WebSocket(API_CONFIG.WS_URL)
+          const ws = new WebSocket(apiConfig.wsUrl)
           const timeout = setTimeout(() => {
             console.log('WebSocket 连接超时')
             ws.close()
@@ -875,7 +875,7 @@ export default defineComponent({
       isMobile,
       showSidebar,
       avatarInput,
-      API_CONFIG,
+      apiConfig,
       // 个人主页相关状态
       profileUsername,
       profileBio,

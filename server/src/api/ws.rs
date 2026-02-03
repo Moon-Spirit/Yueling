@@ -28,13 +28,14 @@ use uuid::Uuid;
 /// 共享应用状态
 #[derive(Clone)]
 pub struct AppState {
-    pub db_pool: crate::storage::DbPool,
+    pub db_pool: crate::storage::DbPool, /// 数据库连接池
     /// 用户ID到WebSocket广播通道的映射
     clients: Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>,
     /// 客户端ID到用户ID的映射，用于断开连接时清理资源
     client_user_map: Arc<Mutex<HashMap<String, String>>>,
     /// 全局广播通道，用于向所有客户端发送消息
     broadcaster: broadcast::Sender<String>,
+    /// 群聊ID到广播通道的映射，用于群聊消息推送
     pub group_chat_broadcast_channel_map: Arc<Mutex<HashMap<String, broadcast::Sender<String>>>>,
 }
 

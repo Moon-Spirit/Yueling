@@ -1,10 +1,12 @@
+// 存储模块
+// 提供数据库操作和数据模型定义
 use rusqlite::{params, Connection, Result};
 use bcrypt::{hash, DEFAULT_COST};
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use std::sync::{Arc, Mutex};
 
-// 用户模型（对应数据库表）
+/// 用户模型（对应数据库表）
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub id: String,          // UUID主键
@@ -15,7 +17,7 @@ pub struct User {
     pub avatar_url: String,  // 头像URL
 }
 
-// 消息模型
+/// 消息模型
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
     pub id: String,          // UUID主键
@@ -27,7 +29,7 @@ pub struct Message {
     pub is_read: bool,       // 是否已读
 }
 
-// 好友关系模型
+/// 好友关系模型
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Friendship {
     pub id: String,          // UUID主键
@@ -37,7 +39,7 @@ pub struct Friendship {
     pub created_at: i64,     // 创建时间戳
 }
 
-// 群聊模型
+/// 群聊模型
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Group {
     pub id: String,          // UUID主键
@@ -46,7 +48,7 @@ pub struct Group {
     pub created_at: i64,     // 创建时间戳
 }
 
-// 群聊成员模型
+/// 群聊成员模型
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GroupMember {
     pub id: String,          // UUID主键
@@ -56,22 +58,28 @@ pub struct GroupMember {
     pub role: String,        // 角色："owner"或"member"
 }
 
-// 好友请求响应
+/// 好友请求模型
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FriendRequest {
-    pub id: String,
-    pub from_user_id: String,
-    pub to_user_id: String,
-    pub status: String, // "pending", "accepted", "rejected"
-    pub created_at: i64,
+    pub id: String,          // UUID主键
+    pub from_user_id: String, // 发送者ID
+    pub to_user_id: String,   // 接收者ID
+    pub status: String,       // 状态："pending", "accepted", "rejected"
+    pub created_at: i64,      // 创建时间戳
 }
 
-// 数据库连接池（线程安全）
+/// 数据库连接池（线程安全）
 #[derive(Clone)]
 pub struct DbPool(pub Arc<Mutex<Connection>>);
 
 impl DbPool {
-    // 初始化数据库连接并创建所有表
+    /// 初始化数据库连接并创建所有表
+    /// 
+    /// # 参数
+    /// - `db_path`: 数据库文件路径
+    /// 
+    /// # 返回
+    /// - `Result<Self>`: 数据库连接池实例或错误
     pub fn new(db_path: &str) -> Result<Self> {
         let conn = Connection::open(db_path)?;
         
@@ -166,7 +174,15 @@ impl DbPool {
         Ok(Self(Arc::new(Mutex::new(conn))))
     }
 
-    // 注册新用户（核心逻辑）
+    /// 注册新用户（核心逻辑）
+    /// 
+    /// # 参数
+    /// - `username`: 用户名
+    /// - `_email`: 邮箱（保留参数，保持向后兼容）
+    /// - `password`: 明文密码
+    /// 
+    /// # 返回
+    /// - `Result<User>`: 新用户信息或错误
     pub fn register_user(
         &self,
         username: &str,
