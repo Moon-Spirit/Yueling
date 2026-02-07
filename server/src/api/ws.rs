@@ -162,7 +162,7 @@ async fn handle_websocket(socket: WebSocket, state: AppState) {
                                 let content=if let Some(msg)= v.get("content").and_then(|x| x.as_str()) {
                                     msg
                                 }else{
-                                    ""
+                                    continue;
                                 };
                                 group_chat_broadcast_channel_map[group_id].send(content.to_string()).unwrap();
                             }
