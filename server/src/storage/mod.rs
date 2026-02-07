@@ -142,8 +142,8 @@ impl DbPool {
                 name TEXT NOT NULL,
                 creator_id TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
-                FOREIGN KEY(creator_id) REFERENCES users(id),
-                group_user_list: TEXT
+                group_user_list TEXT,
+                FOREIGN KEY(creator_id) REFERENCES users(id)
             )",
             [],
         )?;
