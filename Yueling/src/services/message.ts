@@ -154,9 +154,10 @@ export class MessageService {
                                         existingMsg.content === frontEndMessage.content && 
                                         existingMsg.receiver_id === frontEndMessage.receiver_id && 
                                         Math.abs(existingMsg.timestamp - frontEndMessage.timestamp) < 10000) {
-                                        // 替换临时ID为正式ID
+                                        // 替换临时ID为正式ID，同时更新时间戳和状态
                                         existingMsg.id = frontEndMessage.id
                                         existingMsg.status = frontEndMessage.status
+                                        existingMsg.timestamp = frontEndMessage.timestamp
                                         tempMessageFound = true
                                         break
                                     }
