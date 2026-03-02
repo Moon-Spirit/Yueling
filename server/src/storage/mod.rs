@@ -24,6 +24,7 @@ pub struct Message {
     pub content: String,     // 消息内容
     pub message_type: String, // 消息类型："private"或"group"
     pub created_at: i64,     // 创建时间戳
+    pub status: String,      // 消息状态："sent", "delivered", "read"
     pub is_read: bool,       // 是否已读
 }
 
@@ -98,9 +99,21 @@ impl DbPool {
                 content TEXT NOT NULL,
                 message_type TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'sent',
                 is_read INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY(sender_id) REFERENCES users(id)
             )",
+            [],
+        )?;
+        
+        // 创建索引
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_messages_receiver_created ON messages (receiver_id, created_at)",
+            [],
+        )?;
+        
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_messages_sender_created ON messages (sender_id, created_at)",
             [],
         )?;
         
@@ -237,9 +250,9 @@ impl DbPool {
             .as_secs() as i64;
         
         conn.execute(
-            "INSERT INTO messages (id, sender_id, receiver_id, content, message_type, created_at, is_read) 
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            params![message_id, sender_id, receiver_id, content, message_type, created_at, false],
+            "INSERT INTO messages (id, sender_id, receiver_id, content, message_type, created_at, status, is_read) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![message_id, sender_id, receiver_id, content, message_type, created_at, "sent", false],
         )?;
         
         Ok(Message {
@@ -249,6 +262,7 @@ impl DbPool {
             content: content.to_string(),
             message_type: message_type.to_string(),
             created_at,
+            status: "sent".to_string(),
             is_read: false,
         })
     }
@@ -257,7 +271,7 @@ impl DbPool {
     pub fn get_unread_messages(&self, user_id: &str) -> Result<Vec<Message>> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, sender_id, receiver_id, content, message_type, created_at, is_read 
+            "SELECT id, sender_id, receiver_id, content, message_type, created_at, status, is_read 
              FROM messages 
              WHERE receiver_id = ? AND is_read = 0 AND message_type = 'private'"
         )?;
@@ -270,7 +284,8 @@ impl DbPool {
                 content: row.get(3)?,
                 message_type: row.get(4)?,
                 created_at: row.get(5)?,
-                is_read: row.get(6)?,
+                status: row.get(6)?,
+                is_read: row.get(7)?,
             })
         })?
         .filter_map(Result::ok)
@@ -285,12 +300,58 @@ impl DbPool {
         
         for message_id in message_ids {
             conn.execute(
-                "UPDATE messages SET is_read = 1 WHERE id = ?",
+                "UPDATE messages SET is_read = 1, status = 'read' WHERE id = ?",
                 [message_id],
             )?;
         }
         
         Ok(())
+    }
+    
+    // 将消息标记为已送达
+    pub fn mark_messages_as_delivered(&self, message_ids: &[String]) -> Result<()> {
+        let conn = self.0.lock().unwrap();
+        
+        for message_id in message_ids {
+            conn.execute(
+                "UPDATE messages SET status = 'delivered' WHERE id = ?",
+                [message_id],
+            )?;
+        }
+        
+        Ok(())
+    }
+    
+    // 同步消息（支持断点续传和批量获取）
+    pub fn sync_messages(&self, user_id: &str, last_sync_time: i64, limit: i64) -> Result<Vec<Message>> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, sender_id, receiver_id, content, message_type, created_at, status, is_read 
+             FROM messages 
+             WHERE (receiver_id = ? OR sender_id = ?) AND created_at > ? 
+             ORDER BY created_at ASC 
+             LIMIT ?"
+        )?;
+        
+        let messages = stmt.query_map(
+            params![user_id, user_id, last_sync_time, limit],
+            |row| {
+                Ok(Message {
+                    id: row.get(0)?,
+                    sender_id: row.get(1)?,
+                    receiver_id: row.get(2)?,
+                    content: row.get(3)?,
+                    message_type: row.get(4)?,
+                    created_at: row.get(5)?,
+                    status: row.get(6)?,
+                    is_read: row.get(7)?,
+                })
+            }
+        )?
+        .filter_map(Result::ok)
+        .collect();
+        
+        Ok(messages)
     }
     
     // 获取用户好友列表

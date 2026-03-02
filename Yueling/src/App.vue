@@ -4,452 +4,105 @@
       <i class="fas fa-exclamation-triangle"></i>
       无法连接到服务器，请检查后端是否运行在 http://localhost:2025
     </div>
+    
     <!-- 登录界面 -->
-    <div id="login-container" class="container" :class="{ active: currentView === 'login' }">
-      <div class="login-box">
-        <div class="logo">
-          <i class="fas fa-moon"></i>
-          <h1>月灵聊天</h1>
-        </div>
-        
-        <form id="login-form" class="form" @submit.prevent="handleLogin">
-          <div class="form-group">
-            <label for="login-username">用户名</label>
-            <div class="input-wrapper">
-              <i class="fas fa-user"></i>
-              <input type="text" id="login-username" v-model="loginUsername" placeholder="请输入用户名" required>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label for="login-password">密码</label>
-            <div class="input-wrapper">
-              <i class="fas fa-lock"></i>
-              <input type="password" id="login-password" v-model="loginPassword" placeholder="请输入密码" required>
-              <i class="fas fa-eye-slash toggle-password" @click="togglePasswordVisibility('login')"></i>
-            </div>
-          </div>
-          
-          <div class="form-options">
-            <label class="checkbox">
-              <input type="checkbox" id="remember-me" v-model="rememberMe">
-              <span>记住密码</span>
-            </label>
-            <a href="#" class="forgot-password">忘记密码？</a>
-          </div>
-          
-          <button type="submit" class="btn btn-primary">登录</button>
-        </form>
-        
-        <div class="form-footer">
-          <p>没有账号？ <a href="#" id="switch-to-register" @click.prevent="switchToRegister">立即注册</a></p>
-        </div>
-      </div>
-    </div>
+    <Login 
+      :isActive="currentView === 'login'" 
+      @login="handleLogin"
+      @switch-to-register="switchToRegister"
+    />
     
     <!-- 注册界面 -->
-    <div id="register-container" class="container" :class="{ active: currentView === 'register' }">
-      <div class="register-box">
-        <div class="logo">
-          <i class="fas fa-moon"></i>
-          <h1>注册月灵账号</h1>
-        </div>
-        
-        <form id="register-form" class="form" @submit.prevent="handleRegister">
-          <div class="form-group">
-            <label for="register-username">用户名</label>
-            <div class="input-wrapper">
-              <i class="fas fa-user"></i>
-              <input type="text" id="register-username" v-model="registerUsername" placeholder="请输入用户名" required>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label for="register-password">密码</label>
-            <div class="input-wrapper">
-              <i class="fas fa-lock"></i>
-              <input type="password" id="register-password" v-model="registerPassword" placeholder="请输入密码" required>
-              <i class="fas fa-eye-slash toggle-password" @click="togglePasswordVisibility('register')"></i>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label for="register-confirm-password">确认密码</label>
-            <div class="input-wrapper">
-              <i class="fas fa-lock"></i>
-              <input type="password" id="register-confirm-password" v-model="registerConfirmPassword" placeholder="请再次输入密码" required>
-              <i class="fas fa-eye-slash toggle-password" @click="togglePasswordVisibility('register-confirm')"></i>
-            </div>
-          </div>
-          
-          <button type="submit" class="btn btn-primary">注册</button>
-        </form>
-        
-        <div class="form-footer">
-          <p>已有账号？ <a href="#" id="switch-to-login" @click.prevent="switchToLogin">立即登录</a></p>
-        </div>
-      </div>
-    </div>
+    <Register 
+      :isActive="currentView === 'register'" 
+      @register="handleRegister"
+      @switch-to-login="switchToLogin"
+    />
     
     <!-- 聊天主界面 -->
-    <div id="chat-container" class="container" :class="{ active: currentView === 'chat' }">
-      <div class="chat-app">
-        <!-- 侧边栏 -->
-        <aside class="sidebar" :class="{ 'mobile-hidden': !showSidebar && isMobile }">
-          <div class="sidebar-header">
-            <div class="user-info">
-              <div class="avatar-container">
-                <div class="avatar" @click="handleAvatarClick">
-                  <img v-if="currentUser?.avatar_url" :src="`${API_CONFIG.BASE_URL}${currentUser.avatar_url}`" :alt="currentUser.username" class="avatar-img">
-                  <i v-else class="fas fa-user-circle avatar-icon"></i>
-                  <input type="file" ref="avatarInput" style="display: none" accept="image/*" @change="handleAvatarChange">
-                </div>
-                <span id="user-status" class="status online">在线</span>
-              </div>
-              <div class="user-details">
-                <h3 id="current-username">{{ currentUser?.username || '用户名' }}</h3>
-              </div>
-            </div>
-          </div>
-          
-          <div class="sidebar-search">
-            <div class="input-wrapper with-button">
-              <i class="fas fa-search"></i>
-              <input type="text" placeholder="搜索好友或群聊">
-              <button id="add-friend-open" class="btn-icon search-btn" title="添加好友" @click="showAddFriend">
-                <i class="fas fa-user-plus"></i>
-              </button>
-            </div>
-          </div>
-          
-          <div class="sidebar-tabs">
-            <button class="tab-btn" :class="{ active: activeTab === 'friends' }" data-tab="friends" @click="switchTab('friends')">
-              <i class="fas fa-user-friends"></i>
-              <span>好友</span>
-            </button>
-            <button class="tab-btn" :class="{ active: activeTab === 'groups' }" data-tab="groups" @click="switchTab('groups')">
-              <i class="fas fa-users"></i>
-              <span>群聊</span>
-            </button>
-          </div>
-          
-          <div class="sidebar-content">
-            <!-- 好友列表 -->
-            <div id="friends-tab" class="tab-content" :class="{ active: activeTab === 'friends' }">
-              <div class="contact-list">
-                <div v-for="friend in friends" :key="friend.id" class="contact-item" :class="{ active: selectedContact?.id === friend.id }" @click="selectContact(friend); if (isMobile) showSidebar = false">
-                  <div class="avatar">
-                    <img v-if="friend.avatar_url" :src="`${API_CONFIG.BASE_URL}${friend.avatar_url}`" :alt="friend.name" class="avatar-img">
-                    <i v-else class="fas fa-user-circle avatar-icon"></i>
-                  </div>
-                  <div class="contact-info">
-                    <div class="contact-name">
-                      <span>{{ friend.name }}</span>
-                      <span class="status" :class="friend.status">{{ friend.status }}</span>
-                    </div>
-                    <div class="contact-last-message">点击开始聊天</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 群聊列表 -->
-            <div id="groups-tab" class="tab-content" :class="{ active: activeTab === 'groups' }">
-              <div class="contact-list">
-                <div v-for="group in groups" :key="group.id" class="contact-item" :class="{ active: selectedContact?.id === group.id }" @click="selectContact(group); if (isMobile) showSidebar = false">
-                  <div class="avatar">
-                    <i class="fas fa-users"></i>
-                  </div>
-                  <div class="contact-info">
-                    <div class="contact-name">
-                      <span>{{ group.name }}</span>
-                      <span class="status group">群聊</span>
-                    </div>
-                    <div class="contact-last-message">{{ group.memberCount }} 名成员</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="sidebar-footer">
-            <div class="sidebar-actions">
-              <button class="btn-icon vertical-theme-toggle" title="切换主题" @click="toggleTheme">
-                <i v-if="!isDarkMode" class="fas fa-moon"></i>
-                <i v-else class="fas fa-sun"></i>
-              </button>
-              <button id="friend-requests-open" class="btn-icon" title="好友请求" @click="showFriendRequests">
-                <i class="fas fa-user-check"></i>
-              </button>
-              <button id="logout-btn" class="btn btn-secondary" @click="logout">
-                <i class="fas fa-sign-out-alt"></i>
-              </button>
-            </div>
-          </div>
-        </aside>
-        
-        <!-- 聊天区域 -->
-        <main class="chat-main" :class="{ 'full-width': !showSidebar && isMobile }">
-          <div class="chat-header">
-            <div class="chat-header-left">
-              <button v-if="isMobile" class="btn-icon menu-toggle" @click="showSidebar = !showSidebar">
-                <i class="fas fa-bars"></i>
-              </button>
-              <div class="contact-info">
-                <div class="avatar">
-                  <img v-if="selectedContact?.avatar_url" :src="`${API_CONFIG.BASE_URL}${selectedContact.avatar_url}`" :alt="selectedContact.name" class="avatar-img">
-                  <i v-else class="fas fa-user-circle avatar-icon"></i>
-                </div>
-                <div class="contact-details">
-                  <h3 id="chat-contact-name">{{ selectedContact?.name || '请选择一个好友或群聊' }}</h3>
-                  <span id="chat-contact-status" class="status">{{ selectedContact?.status }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="chat-actions">
-              <button class="btn-icon" title="更多">
-                <i class="fas fa-ellipsis-v"></i>
-              </button>
-            </div>
-          </div>
-          
-          <div class="chat-messages" id="chat-messages">
-            <div v-for="message in messages" :key="message.id" :class="['message', message.sender_id === currentUser?.id ? 'user' : 'other']">
-              <div class="message-content">{{ message.content }}</div>
-              <div class="message-time">{{ formatTime(message.timestamp) }}</div>
-            </div>
-          </div>
-          
-          <div class="chat-input-area">
-            <div class="input-tools">
-              <button class="btn-icon" title="表情">
-                <i class="far fa-smile"></i>
-              </button>
-              <button class="btn-icon" title="图片">
-                <i class="far fa-image"></i>
-              </button>
-              <button class="btn-icon" title="文件">
-                <i class="fas fa-paperclip"></i>
-              </button>
-              <button class="btn-icon" title="语音">
-                <i class="fas fa-microphone"></i>
-              </button>
-              <button class="btn-icon" title="位置">
-                <i class="fas fa-map-marker-alt"></i>
-              </button>
-              <button class="btn-icon" title="视频">
-                <i class="fas fa-video"></i>
-              </button>
-              <button class="btn-icon" title="更多">
-                <i class="fas fa-ellipsis-h"></i>
-              </button>
-            </div>
-            <div class="input-wrapper">
-              <textarea id="message-input" v-model="newMessage" placeholder="输入消息..." rows="1" @keydown.enter.prevent="sendMessage" @input="autoResizeTextarea"></textarea>
-            </div>
-            <button id="send-btn" class="btn" @click="sendMessage">
-              <i class="fas fa-paper-plane"></i>
-            </button>
-          </div>
-        </main>
-      </div>
-    </div>
+    <Chat 
+      :isActive="currentView === 'chat'"
+      :currentUser="currentUser"
+      :friends="friends"
+      :groups="groups"
+      :messages="messages"
+      :isDarkMode="isDarkMode"
+      @logout="logout"
+      @show-add-friend="showAddFriend"
+      @show-friend-requests="showFriendRequests"
+      @show-profile="showProfile"
+      @select-contact="selectContact"
+      @send-message="sendMessage"
+      @toggle-theme="toggleTheme"
+      @avatar-change="handleAvatarChange"
+    />
     
     <!-- 通知提示 -->
     <div id="toast" class="toast" :class="toastClass" v-if="toastMessage">{{ toastMessage }}</div>
     
     <!-- 添加好友页面 -->
-    <div id="add-friend-container" class="container" :class="{ active: currentView === 'add-friend' }">
-      <div class="register-box">
-        <div class="logo">
-          <i class="fas fa-user-plus"></i>
-          <h1>添加好友</h1>
-        </div>
-        <form id="add-friend-form" class="form" @submit.prevent="handleAddFriendSubmit">
-          <div class="form-group">
-            <label for="add-friend-username">好友用户名</label>
-            <div class="input-wrapper">
-              <i class="fas fa-user"></i>
-              <input type="text" id="add-friend-username" v-model="addFriendUsername" placeholder="输入好友用户名" required>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="add-friend-display">显示名称（可选）</label>
-            <div class="input-wrapper">
-              <i class="fas fa-id-badge"></i>
-              <input type="text" id="add-friend-display" v-model="addFriendDisplay" placeholder="对好友显示的名称">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="add-friend-note">备注（可选）</label>
-            <div class="input-wrapper">
-              <i class="fas fa-sticky-note"></i>
-              <input type="text" id="add-friend-note" v-model="addFriendNote" placeholder="给好友写点备注">
-            </div>
-          </div>
-
-          <div class="form-buttons">
-            <button type="submit" class="btn btn-primary">发送好友请求</button>
-            <button type="button" id="add-friend-cancel" class="btn btn-secondary" @click="showChat">取消</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <AddFriend 
+      :isActive="currentView === 'add-friend'"
+      @add-friend="handleAddFriendSubmit"
+      @cancel="showChat"
+    />
 
     <!-- 好友请求页面 -->
-    <div id="friend-requests-container" class="container" :class="{ active: currentView === 'friend-requests' }">
-      <div class="register-box">
-        <div class="logo">
-          <i class="fas fa-user-check"></i>
-          <h1>好友请求</h1>
-        </div>
-        <div class="form">
-          <div class="form-group">
-            <label>收到的好友请求</label>
-            <div class="input-wrapper">
-              <div id="friend-requests-list" style="width:100%;">
-                <div v-for="request in friendRequests" :key="request.id" class="friend-request-item">
-                  <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                      <div><strong>{{ request.from_username || request.from_user_id || '未知用户' }}</strong></div>
-                      <div style="font-size:12px;color:#666;margin-top:4px;">请求时间：{{ formatRequestTime(request.created_at) }}</div>
-                    </div>
-                    <div style="display:flex;gap:12px;">
-                      <button class="btn btn-accept" @click="respondToFriendRequest(request.id, 'accepted')">接受</button>
-                      <button class="btn btn-reject" @click="respondToFriendRequest(request.id, 'rejected')">拒绝</button>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="friendRequests.length === 0" style="text-align:center;color:var(--text-secondary);padding:24px;background:var(--bg-light);border-radius:12px;margin-top:12px;">没有新的好友请求。</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-buttons">
-            <button type="button" id="friend-requests-cancel" class="btn btn-primary" @click="showChat">返回</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <FriendRequests 
+      :isActive="currentView === 'friend-requests'"
+      :friendRequests="friendRequests"
+      @respond-request="respondToFriendRequest"
+      @cancel="showChat"
+    />
 
     <!-- 个人主页 -->
-    <div id="profile-container" class="container" :class="{ active: currentView === 'profile' }">
-      <div class="register-box" style="max-width: 600px;">
-        <div class="logo">
-          <i class="fas fa-user"></i>
-          <h1>个人主页</h1>
-        </div>
-        <div class="form">
-          <div class="form-group" style="text-align: center;">
-            <div class="avatar-container" style="display: inline-block; margin-bottom: 20px;">
-              <div class="avatar" @click="showAvatarUpload" style="width: 120px; height: 120px;">
-                <img v-if="currentUser?.avatar_url" :src="`${API_CONFIG.BASE_URL}${currentUser.avatar_url}`" :alt="currentUser.username" class="avatar-img" style="width: 100%; height: 100%;">
-                <i v-else class="fas fa-user-circle avatar-icon" style="font-size: 120px;"></i>
-                <input type="file" ref="avatarInput" style="display: none" accept="image/*" @change="handleAvatarChange">
-              </div>
-              <span class="status online">在线</span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="profile-username">用户名</label>
-            <div class="input-wrapper">
-              <i class="fas fa-user"></i>
-              <input type="text" id="profile-username" v-model="profileUsername" placeholder="请输入用户名">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="profile-bio">个人简介</label>
-            <div class="input-wrapper">
-              <i class="fas fa-info-circle"></i>
-              <textarea id="profile-bio" v-model="profileBio" placeholder="介绍一下自己..." rows="3"></textarea>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="profile-email">邮箱</label>
-            <div class="input-wrapper">
-              <i class="fas fa-envelope"></i>
-              <input type="email" id="profile-email" v-model="profileEmail" placeholder="请输入邮箱">
-            </div>
-          </div>
-
-          <div class="form-buttons">
-            <button type="button" class="btn btn-primary" @click="saveProfile">保存修改</button>
-            <button type="button" class="btn btn-secondary" @click="showChat">返回</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Profile 
+      :isActive="currentView === 'profile'"
+      :currentUser="currentUser"
+      @save-profile="saveProfile"
+      @avatar-change="handleAvatarChange"
+      @cancel="showChat"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue'
-import { API_CONFIG } from './config/api'
-import { authService } from './services/auth'
-import { friendService } from './services/friend'
 import { websocketService } from './services/websocket'
-
-interface User {
-  id: string
-  username: string
-  avatar_url?: string
-}
-
-interface Contact {
-  id: string
-  name: string
-  status: string
-  memberCount?: number
-  avatar_url?: string
-}
-
-interface Message {
-  id?: string
-  content: string
-  sender_id: string
-  timestamp: number
-}
-
-interface FriendRequest {
-  id: string
-  from_user_id: string
-  from_username?: string
-  created_at: number
-}
+import Login from './components/Login.vue'
+import Register from './components/Register.vue'
+import Chat from './components/Chat.vue'
+import AddFriend from './components/AddFriend.vue'
+import FriendRequests from './components/FriendRequests.vue'
+import Profile from './components/Profile.vue'
+import { LoginData, RegisterData, AddFriendData, ProfileData, FriendRequestResponse, Contact, Message } from './types'
+import { useUserStore } from './stores/user'
+import { useFriendStore } from './stores/friend'
+import { useMessageStore } from './stores/message'
+import { useServerStore } from './stores/server'
+import { useTheme } from './hooks'
 
 export default defineComponent({
   name: 'App',
+  components: {
+    Login,
+    Register,
+    Chat,
+    AddFriend,
+    FriendRequests,
+    Profile
+  },
   setup() {
     const currentView = ref<'login' | 'register' | 'chat' | 'add-friend' | 'friend-requests' | 'profile'>('login')
-    const loginUsername = ref('')
-    const loginPassword = ref('')
-    const rememberMe = ref(false)
-    const registerUsername = ref('')
-    const registerPassword = ref('')
-    const registerConfirmPassword = ref('')
-    const currentUser = ref<User | null>(null)
-    const activeTab = ref<'friends' | 'groups'>('friends')
-    const friends = ref<Contact[]>([])
-    const groups = ref<Contact[]>([])
-    const selectedContact = ref<Contact | null>(null)
-    const messages = ref<Message[]>([])
-    const newMessage = ref('')
     const toastMessage = ref('')
     const toastType = ref<'info' | 'success' | 'error'>('info')
-    const addFriendUsername = ref('')
-    const addFriendDisplay = ref('')
-    const addFriendNote = ref('')
-    const friendRequests = ref<FriendRequest[]>([])
-    const avatarInput = ref<HTMLInputElement | null>(null)
-    // 个人主页相关状态
-    const profileUsername = ref('')
-    const profileBio = ref('')
-    const profileEmail = ref('')
+    const { isDarkMode, toggleTheme, checkThemePreference } = useTheme()
+
+    // 初始化 stores
+    const userStore = useUserStore()
+    const friendStore = useFriendStore()
+    const messageStore = useMessageStore()
+    const serverStore = useServerStore()
 
     const toastClass = computed(() => `toast ${toastType.value} ${toastMessage.value ? 'show' : ''}`)
 
@@ -481,27 +134,24 @@ export default defineComponent({
       currentView.value = 'friend-requests'
     }
 
-    const togglePasswordVisibility = (field: string) => {
-      // 实现密码显示/隐藏逻辑
-      const input = document.getElementById(`${field}-password`) as HTMLInputElement
-      if (input) {
-        input.type = input.type === 'password' ? 'text' : 'password'
-      }
+    const showProfile = () => {
+      currentView.value = 'profile'
     }
 
-    const handleLogin = async () => {
-      if (!loginUsername.value || !loginPassword.value) {
+    const handleLogin = async (loginData: LoginData) => {
+      if (!loginData.username || !loginData.password) {
         showToast('请输入用户名和密码', 'error')
         return
       }
       try {
-        const user = await authService.login(loginUsername.value, loginPassword.value)
-        currentUser.value = user
+        const user = await userStore.login(loginData.username, loginData.password)
         showToast('登录成功', 'success')
         currentView.value = 'chat'
         // 加载好友列表和好友请求
         loadFriends()
         loadFriendRequests()
+        // 同步历史消息
+        await messageStore.syncMessages(user.id)
         // 连接 WebSocket
         try {
           await websocketService.connect()
@@ -528,13 +178,13 @@ export default defineComponent({
       }
     }
 
-    const handleRegister = async () => {
-      if (registerPassword.value !== registerConfirmPassword.value) {
+    const handleRegister = async (registerData: RegisterData) => {
+      if (registerData.password !== registerData.confirmPassword) {
         showToast('两次输入的密码不一致', 'error')
         return
       }
       try {
-        await authService.register(registerUsername.value, registerPassword.value, registerConfirmPassword.value)
+        await userStore.register(registerData.username, registerData.password, registerData.confirmPassword)
         showToast('注册成功，请登录', 'success')
         currentView.value = 'login'
       } catch (error: any) {
@@ -543,51 +193,42 @@ export default defineComponent({
     }
 
     const logout = () => {
-      authService.logout()
+      userStore.logout()
+      friendStore.$reset()
+      messageStore.$reset()
       websocketService.disconnect()
-      currentUser.value = null
       currentView.value = 'login'
       showToast('已成功登出', 'success')
     }
 
-    const switchTab = (tab: 'friends' | 'groups') => {
-      activeTab.value = tab
-    }
-
     const selectContact = (contact: Contact) => {
-      selectedContact.value = contact
-      // 加载消息历史
-    }
-
-    const sendMessage = () => {
-      if (!newMessage.value.trim() || !selectedContact.value || !currentUser.value) return
-      const message: Message = {
-        content: newMessage.value,
-        sender_id: currentUser.value.id,
-        timestamp: Date.now(),
+      messageStore.setSelectedContact(contact.id)
+      // 加载历史消息
+      if (userStore.userId) {
+        messageStore.loadMessages(userStore.userId, contact.id)
       }
-      messages.value.push(message)
-      newMessage.value = ''
+    }
+
+    const sendMessage = (message: Message) => {
+      messageStore.addMessage(message)
       // 发送到 WebSocket
+      websocketService.send({
+        type: 'message',
+        ...message
+      })
     }
 
-    const autoResizeTextarea = (event: Event) => {
-      const textarea = event.target as HTMLTextAreaElement
-      textarea.style.height = 'auto'
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
-    }
-
-    const handleAddFriendSubmit = async () => {
-      if (!addFriendUsername.value.trim()) {
+    const handleAddFriendSubmit = async (addFriendData: AddFriendData) => {
+      if (!addFriendData.username.trim()) {
         showToast('请输入好友用户名', 'error')
         return
       }
       try {
-        await friendService.addFriend(
-          currentUser.value?.id || '',
-          addFriendUsername.value,
-          addFriendDisplay.value,
-          addFriendNote.value
+        await friendStore.addFriend(
+          userStore.userId || '',
+          addFriendData.username,
+          addFriendData.displayName,
+          addFriendData.note
         )
         showToast('好友请求已发送，等待对方确认', 'success')
         currentView.value = 'chat'
@@ -596,93 +237,25 @@ export default defineComponent({
       }
     }
 
-    const respondToFriendRequest = async (requestId: string, response: 'accepted' | 'rejected') => {
+    const respondToFriendRequest = async (responseData: FriendRequestResponse) => {
       try {
-        const userId = currentUser.value?.id
+        const userId = userStore.userId
         if (!userId) {
           showToast('用户未登录', 'error')
           return
         }
-        await friendService.respondToFriendRequest(requestId, userId, response)
-        friendRequests.value = friendRequests.value.filter(req => req.id !== requestId)
-        showToast(`好友请求已${response === 'accepted' ? '接受' : '拒绝'}`, 'success')
+        await friendStore.respondToFriendRequest(responseData.requestId, userId, responseData.response)
+        showToast(`好友请求已${responseData.response === 'accepted' ? '接受' : '拒绝'}`, 'success')
       } catch (error: any) {
         showToast(error.message || '处理好友请求失败', 'error')
       }
     }
 
-    const formatTime = (timestamp: number) => {
-      return new Date(timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-    }
-
-    const formatRequestTime = (timestamp: number) => {
-      return new Date(timestamp * 1000).toLocaleString('zh-CN')
-    }
-
-    const serverConnected = ref(false)
-    const isDarkMode = ref(false)
-    const isMobile = ref(window.innerWidth < 768)
-    const showSidebar = ref(true)
-
-    // 切换主题
-    const toggleTheme = () => {
-      isDarkMode.value = !isDarkMode.value
-      document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light')
-      localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light')
-    }
-
-    // 检查主题偏好
-    const checkThemePreference = () => {
-      const savedTheme = localStorage.getItem('theme')
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      isDarkMode.value = savedTheme ? savedTheme === 'dark' : prefersDark
-      document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light')
-    }
-
-    // 显示头像上传对话框
-    const showAvatarUpload = () => {
-      if (avatarInput.value) {
-        avatarInput.value.click()
-      }
-    }
-
-    // 用于区分单击和双击事件的变量
-    let clickTimer: number | null = null
-
-    // 处理头像点击事件
-    const handleAvatarClick = () => {
-      // 如果已经有点击计时器，说明是双击
-      if (clickTimer) {
-        clearTimeout(clickTimer)
-        clickTimer = null
-        // 执行双击操作：打开个人主页
-        if (currentUser.value) {
-          // 初始化个人主页表单数据
-          profileUsername.value = currentUser.value.username || ''
-          profileBio.value = '' // 这里可以从后端获取实际数据
-          profileEmail.value = '' // 这里可以从后端获取实际数据
-          currentView.value = 'profile'
-        }
-      } else {
-        // 第一次点击，设置计时器
-        clickTimer = window.setTimeout(() => {
-          // 执行单击操作：显示头像上传
-          showAvatarUpload()
-          clickTimer = null
-        }, 300) // 300ms 延迟，用于区分单击和双击
-      }
-    }
-
     // 保存个人主页修改
-    const saveProfile = async () => {
-      if (!currentUser.value) return
+    const saveProfile = async (profileData: ProfileData) => {
+      if (!userStore.currentUser) return
       try {
-        // 调用后端API保存个人信息
-        await authService.updateUserInfo(currentUser.value.id, profileUsername.value, profileEmail.value)
-        // 更新本地用户信息
-        if (profileUsername.value) {
-          currentUser.value.username = profileUsername.value
-        }
+        await userStore.updateUserInfo(profileData.username, profileData.email)
         showToast('个人信息保存成功', 'success')
         currentView.value = 'chat'
       } catch (error: any) {
@@ -691,129 +264,64 @@ export default defineComponent({
     }
 
     // 处理头像选择
-    const handleAvatarChange = async (event: Event) => {
-      const input = event.target as HTMLInputElement
-      if (input.files && input.files.length > 0 && currentUser.value) {
-        const file = input.files[0]
-        try {
-          await authService.uploadAvatar(currentUser.value.id, file)
-          showToast('头像上传成功', 'success')
-          // 重新加载用户信息
-          const userInfo = await authService.getUserInfo(currentUser.value.id)
-          if (userInfo.avatar_url) {
-            currentUser.value.avatar_url = userInfo.avatar_url
-          }
-        } catch (error: any) {
-          showToast(error.message || '头像上传失败', 'error')
-        }
-        // 清空文件输入，以便可以重新选择相同的文件
-        input.value = ''
+    const handleAvatarChange = async (file: File) => {
+      if (!userStore.currentUser) return
+      try {
+        await userStore.uploadAvatar(file)
+        showToast('头像上传成功', 'success')
+      } catch (error: any) {
+        showToast(error.message || '头像上传失败', 'error')
       }
     }
 
     const loadFriends = async () => {
-      if (!currentUser.value) return
-      try {
-        const loaded = await friendService.loadFriends(currentUser.value.id)
-        friends.value = loaded.map(f => ({
-          id: f.id,
-          name: f.name,
-          status: f.status,
-          avatar_url: f.avatar_url
-        }))
-      } catch (error) {
-        console.error('加载好友列表失败:', error)
-      }
+      if (!userStore.userId) return
+      await friendStore.loadFriends(userStore.userId)
     }
 
     const loadFriendRequests = async () => {
-      if (!currentUser.value) return
-      try {
-        const loaded = await friendService.loadFriendRequests(currentUser.value.id)
-        friendRequests.value = loaded
-      } catch (error) {
-        console.error('加载好友请求失败:', error)
-      }
+      if (!userStore.userId) return
+      await friendStore.loadFriendRequests(userStore.userId)
     }
 
-    const checkServer = () => {
+    const checkServer = async () => {
       console.log('开始检查服务器连接...')
-      // 尝试 HTTP 连接
-      fetch(`${API_CONFIG.BASE_URL}/login`, { method: 'GET' })
-        .then(response => {
-          console.log('HTTP 响应状态:', response.status)
-          if (response.ok || response.status === 405) {
-            // 405 表示方法不允许，但至少服务器有响应
-            serverConnected.value = true
-            console.log('服务器 HTTP 连接正常')
-            // 服务器连接成功，验证当前用户是否存在
-            if (currentUser.value) {
-              authService.checkUserExists(currentUser.value.id)
+      try {
+        const isConnected = await serverStore.checkConnection()
+        console.log('服务器连接状态:', isConnected)
+        if (isConnected) {
+          // 服务器连接成功，验证当前用户是否存在
+          const currentUser = userStore.currentUser
+          if (currentUser) {
+            import('./services/auth').then(({ authService }) => {
+              authService.checkUserExists(currentUser.id)
                 .then(exists => {
                   if (!exists) {
                     // 用户不存在于服务器，强制退出登录
                     showToast('用户信息已失效，请重新登录', 'error')
-                    authService.logout()
-                    currentUser.value = null
-                    currentView.value = 'login'
-                    friends.value = []
-                    friendRequests.value = []
+                    logout()
                   }
                 })
                 .catch(err => console.error('验证用户失败:', err))
-            }
-            return
+            })
           }
-          throw new Error(`HTTP ${response.status}`)
-        })
-        .catch((err) => {
-          console.warn('HTTP 检测失败:', err)
-          // HTTP 失败，尝试 WebSocket
-          console.log('尝试 WebSocket 连接...')
-          const ws = new WebSocket(API_CONFIG.WS_URL)
-          const timeout = setTimeout(() => {
-            console.log('WebSocket 连接超时')
-            ws.close()
-            serverConnected.value = false
-            showToast('无法连接到服务器，请检查后端是否运行', 'error')
-          }, 3000)
-          ws.onopen = () => {
-            console.log('WebSocket 连接成功')
-            clearTimeout(timeout)
-            serverConnected.value = true
-            // 服务器连接成功，验证当前用户是否存在
-            if (currentUser.value) {
-              authService.checkUserExists(currentUser.value.id)
-                .then(exists => {
-                  if (!exists) {
-                    showToast('用户信息已失效，请重新登录', 'error')
-                    authService.logout()
-                    currentUser.value = null
-                    currentView.value = 'login'
-                    friends.value = []
-                    friendRequests.value = []
-                  }
-                })
-                .catch(err => console.error('验证用户失败:', err))
-            }
-            ws.close()
-          }
-          ws.onerror = (e) => {
-            console.error('WebSocket 错误:', e)
-            clearTimeout(timeout)
-            serverConnected.value = false
-            showToast('无法连接到服务器，请检查后端是否运行', 'error')
-          }
-        })
+        } else {
+          showToast('无法连接到服务器，请检查后端是否运行', 'error')
+        }
+      } catch (error) {
+        console.error('服务器连接检查失败:', error)
+        showToast('无法连接到服务器，请检查后端是否运行', 'error')
+      }
     }
 
     onMounted(() => {
       // 检查主题偏好
       checkThemePreference()
       // 从存储加载用户
-      const savedUser = authService.loadFromStorage()
-      if (savedUser) {
-        currentUser.value = savedUser
+      userStore.loadUserFromStorage()
+      // 启动服务器连接检查
+      serverStore.startConnectionCheck()
+      if (userStore.currentUser) {
         currentView.value = 'chat'
         // 加载好友列表和好友请求
         loadFriends()
@@ -823,7 +331,7 @@ export default defineComponent({
           // 发送身份标识
           websocketService.send({
             type: 'identify',
-            user_id: savedUser.id
+            user_id: userStore.currentUser!.id
           })
           // 监听好友添加事件
           websocketService.on('friend_added', () => {
@@ -836,73 +344,55 @@ export default defineComponent({
             loadFriendRequests()
           })
         }).catch(err => console.warn('WebSocket 连接失败:', err))
+        
+        // 定期同步消息
+        const syncInterval = setInterval(async () => {
+          if (userStore.currentUser) {
+            await messageStore.syncMessages(userStore.currentUser.id)
+          }
+        }, 5000) // 每5秒同步一次
+        
+        // 组件卸载时清除定时器
+        return () => clearInterval(syncInterval)
       }
       // 检查服务器连接
       checkServer()
-      
-      // 监听窗口大小变化
-      window.addEventListener('resize', () => {
-        isMobile.value = window.innerWidth < 768
-        if (isMobile.value) {
-          showSidebar.value = false
-        }
-      })
     })
 
     return {
       currentView,
-      loginUsername,
-      loginPassword,
-      rememberMe,
-      registerUsername,
-      registerPassword,
-      registerConfirmPassword,
-      currentUser,
-      activeTab,
-      friends,
-      groups,
-      selectedContact,
-      messages,
-      newMessage,
+      currentUser: computed(() => userStore.currentUser),
+      friends: computed(() => friendStore.friends.map(f => ({
+        id: f.id,
+        name: f.name,
+        status: f.status,
+        avatar_url: f.avatar_url
+      }))),
+      groups: ref([]),
+      selectedContact: ref(null),
+      messages: computed(() => messageStore.messages),
       toastMessage,
       toastClass,
-      addFriendUsername,
-      addFriendDisplay,
-      addFriendNote,
-      friendRequests,
-      serverConnected,
+      friendRequests: computed(() => friendStore.friendRequests),
+      serverConnected: computed(() => serverStore.isConnected),
       isDarkMode,
-      isMobile,
-      showSidebar,
-      avatarInput,
-      API_CONFIG,
-      // 个人主页相关状态
-      profileUsername,
-      profileBio,
-      profileEmail,
       showToast,
       switchToRegister,
       switchToLogin,
       showChat,
       showAddFriend,
       showFriendRequests,
-      togglePasswordVisibility,
+      showProfile,
       toggleTheme,
       handleLogin,
       handleRegister,
       logout,
-      switchTab,
       selectContact,
       sendMessage,
-      autoResizeTextarea,
       handleAddFriendSubmit,
       respondToFriendRequest,
-      formatTime,
-      formatRequestTime,
-      showAvatarUpload,
-      handleAvatarChange,
-      handleAvatarClick,
       saveProfile,
+      handleAvatarChange,
     }
   },
 })

@@ -295,11 +295,29 @@ pub async fn update_user_info_handler(
     }))
 }
 
+// 健康检查响应体
+#[derive(Serialize)]
+pub struct HealthResponse {
+    pub success: bool,
+    pub message: String,
+    pub status: String,
+}
+
+// 健康检查处理器
+pub async fn health_check_handler() -> Result<Json<HealthResponse>, AppError> {
+    Ok(Json(HealthResponse {
+        success: true,
+        message: "服务器运行正常".into(),
+        status: "ok".into(),
+    }))
+}
+
 /// 注册用户相关路由
 pub fn register_routes() -> Router<AppState> {
     Router::new()
         .route("/register", post(register_handler))
         .route("/login", post(login_handler))
+        .route("/health", get(health_check_handler))
         .route("/user/exists", post(user_exists_handler))
         .route("/user/{user_id}", get(get_user_info_handler))
         .route("/user/{user_id}", put(update_user_info_handler))

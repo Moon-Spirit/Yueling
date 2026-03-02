@@ -5,6 +5,7 @@ chcp 65001 > nul
 echo 开始构建流程...
 
 REM 构建后端服务器
+echo.
 echo 1. 构建后端服务器...
 cd /d "%~dp0server"
 call cargo build || (echo 后端构建失败 & exit /b 1)

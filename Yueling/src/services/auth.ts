@@ -1,10 +1,5 @@
 import { api } from './api'
-
-export interface User {
-    id: string
-    username: string
-    avatar_url?: string
-}
+import { User } from '../types'
 
 export class AuthService {
     private currentUser: User | null = null
@@ -13,7 +8,7 @@ export class AuthService {
         const result = await api.post('/login', { username, password })
         if (result.success) {
             // 先创建基本用户对象
-            const user = { id: result.user_id, username: result.username, avatar_url: '' }
+            const user: User = { id: result.user_id, username: result.username, avatar_url: '' }
             this.setCurrentUser(user)
             // 获取用户详细信息（包括头像）
             try {

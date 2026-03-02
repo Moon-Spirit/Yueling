@@ -60,6 +60,36 @@ pub struct MarkMessagesAsReadResponse {
     pub message: String,
 }
 
+// 标记消息为已送达请求
+#[derive(Deserialize)]
+pub struct MarkMessagesAsDeliveredRequest {
+    pub message_ids: Vec<String>,
+}
+
+// 标记消息为已送达响应
+#[derive(Serialize)]
+pub struct MarkMessagesAsDeliveredResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+// 同步消息请求
+#[derive(Deserialize)]
+pub struct SyncMessagesRequest {
+    pub user_id: String,
+    pub last_sync_time: i64,
+    pub limit: i64,
+}
+
+// 同步消息响应
+#[derive(Serialize)]
+pub struct SyncMessagesResponse {
+    pub success: bool,
+    pub message: String,
+    pub messages: Vec<Message>,
+    pub last_sync_time: i64,
+}
+
 // 发送消息处理器
 pub async fn send_message_handler(
     State(state): State<AppState>,
@@ -113,10 +143,52 @@ pub async fn mark_messages_as_read_handler(
     }))
 }
 
+// 标记消息为已送达处理器
+pub async fn mark_messages_as_delivered_handler(
+    State(state): State<AppState>,
+    Json(req): Json<MarkMessagesAsDeliveredRequest>,
+) -> Result<Json<MarkMessagesAsDeliveredResponse>, AppError> {
+    state.db_pool.mark_messages_as_delivered(&req.message_ids)
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    Ok(Json(MarkMessagesAsDeliveredResponse {
+        success: true,
+        message: "消息已标记为已送达".into(),
+    }))
+}
+
+// 同步消息处理器
+pub async fn sync_messages_handler(
+    State(state): State<AppState>,
+    Json(req): Json<SyncMessagesRequest>,
+) -> Result<Json<SyncMessagesResponse>, AppError> {
+    let messages = state.db_pool.sync_messages(
+        &req.user_id,
+        req.last_sync_time,
+        req.limit
+    )
+    .map_err(|e| AppError::Database(e.to_string()))?;
+
+    let last_sync_time = if messages.is_empty() {
+        req.last_sync_time
+    } else {
+        messages.last().unwrap().created_at
+    };
+
+    Ok(Json(SyncMessagesResponse {
+        success: true,
+        message: "消息同步成功".into(),
+        messages,
+        last_sync_time,
+    }))
+}
+
 /// 注册消息相关路由
 pub fn register_routes() -> Router<AppState> {
     Router::new()
         .route("/send-message", post(send_message_handler))
         .route("/messages/unread", post(get_unread_messages_handler))
         .route("/messages/read", post(mark_messages_as_read_handler))
+        .route("/messages/delivered", post(mark_messages_as_delivered_handler))
+        .route("/messages/sync", post(sync_messages_handler))
 }

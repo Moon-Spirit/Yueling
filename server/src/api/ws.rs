@@ -151,6 +151,35 @@ async fn handle_websocket(socket: WebSocket, state: AppState) {
                 println!("调试打印: {{来自ws的消息: {v}}}");
                 if let Some(msg_type) = v.get("type").and_then(|x| x.as_str()) {
                     match msg_type {
+                        // 普通消息分支
+                        "message"=>{
+                            // 提取消息内容
+                            if let Some(sender_id) = v.get("sender_id").and_then(|x| x.as_str()) {
+                                if let Some(receiver_id) = v.get("receiver_id").and_then(|x| x.as_str()) {
+                                    if let Some(content) = v.get("content").and_then(|x| x.as_str()) {
+                                        // 保存消息到数据库
+                                        match state_clone.db_pool.send_message(
+                                            sender_id,
+                                            receiver_id,
+                                            content,
+                                            "private"
+                                        ) {
+                                            Ok(message) => {
+                                                println!("消息已保存到数据库: {:?}", message);
+                                                // 尝试发送消息给目标用户
+                                                let clients_map = state_clone.clients.lock().unwrap();
+                                                if let Some(sender) = clients_map.get(receiver_id) {
+                                                    let _ = sender.send(text.to_string());
+                                                }
+                                            },
+                                            Err(e) => {
+                                                println!("保存消息失败: {:?}", e);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
                         // 好友消息分支
                         "friend_Message"=>{
 
@@ -172,8 +201,6 @@ async fn handle_websocket(socket: WebSocket, state: AppState) {
                 }
             }
             println!("从客户端 {} 收到消息: {}", client_id_clone, text);
-            // 广播消息给所有客户端
-            let _ = state_clone.broadcaster.send(format!("{}: {}", client_id_clone, text));
         }
     });
     

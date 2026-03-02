@@ -1,18 +1,5 @@
 import { api } from './api'
-
-export interface Friend {
-    id: string
-    name: string
-    status: 'online' | 'offline'
-    avatar_url?: string
-}
-
-export interface FriendRequest {
-    id: string
-    from_user_id: string
-    from_username?: string
-    created_at: number
-}
+import { Friend, FriendRequest } from '../types'
 
 export class FriendService {
     private friends: Friend[] = []
