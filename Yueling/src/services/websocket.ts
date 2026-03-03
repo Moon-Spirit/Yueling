@@ -13,6 +13,7 @@ export class WebSocketService {
     private reconnectAttempts = 0
     private maxReconnectAttempts = 5
     private messageCallbacks: Map<string, WebSocketCallback[]> = new Map()
+    private userId: string | null = null
 
     connect(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -28,6 +29,14 @@ export class WebSocketService {
                     console.log('WebSocket connected')
                     this.isConnected = true
                     this.reconnectAttempts = 0
+                    // 如果已经有用户ID，重新发送身份标识消息
+                    if (this.userId) {
+                        console.log('WebSocket重新连接成功，发送身份标识')
+                        this.send({
+                            type: 'identify',
+                            user_id: this.userId
+                        })
+                    }
                     resolve()
                 }
                 this.connection.onmessage = (event) => {
@@ -100,6 +109,21 @@ export class WebSocketService {
             console.log(`Reconnecting attempt ${this.reconnectAttempts}`)
             this.connect().catch(err => console.error('Reconnection failed:', err))
         }, 3000)
+    }
+
+    // 获取连接状态
+    get connectionStatus() {
+        return this.isConnected
+    }
+
+    // 设置用户ID
+    setUserId(userId: string) {
+        this.userId = userId
+    }
+
+    // 清除用户ID
+    clearUserId() {
+        this.userId = null
     }
 }
 

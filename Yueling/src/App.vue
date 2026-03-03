@@ -69,6 +69,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue'
 import { websocketService } from './services/websocket'
+import { voiceCallService } from './services/voice'
 import Login from './components/Login.vue'
 import Register from './components/Register.vue'
 import Chat from './components/Chat.vue'
@@ -154,12 +155,16 @@ export default defineComponent({
         await messageStore.syncMessages(user.id)
         // 连接 WebSocket
         try {
+          // 设置用户ID到WebSocket服务
+          websocketService.setUserId(user.id)
           await websocketService.connect()
           // 发送身份标识
           websocketService.send({
             type: 'identify',
             user_id: user.id
           })
+          // 注册语音通话服务的WebSocket监听器
+          voiceCallService.registerWebSocketListeners()
           // 监听好友添加事件
           websocketService.on('friend_added', () => {
             console.log('收到好友添加通知，重新加载好友列表')
@@ -170,6 +175,27 @@ export default defineComponent({
             console.log('收到好友请求通知，重新加载好友请求列表')
             loadFriendRequests()
           })
+          // 监听WebSocket重新连接事件
+          // 注意：这里需要修改WebSocketService，添加重新连接事件的触发
+          // 暂时使用一个定时器来模拟，实际应用中应该修改WebSocketService
+          setInterval(() => {
+            // 检查WebSocket连接状态
+            // 如果连接断开，尝试重新连接并发送身份标识
+            if (!websocketService.connectionStatus) {
+              console.log('WebSocket连接断开，尝试重新连接')
+              websocketService.connect().then(() => {
+                console.log('WebSocket重新连接成功，发送身份标识')
+                websocketService.send({
+                  type: 'identify',
+                  user_id: user.id
+                })
+                // 重新注册语音通话服务的WebSocket监听器
+                voiceCallService.registerWebSocketListeners()
+              }).catch(err => {
+                console.error('WebSocket重新连接失败:', err)
+              })
+            }
+          }, 10000) // 每10秒检查一次
         } catch (wsError) {
           console.warn('WebSocket 连接失败:', wsError)
         }
@@ -327,12 +353,15 @@ export default defineComponent({
         loadFriends()
         loadFriendRequests()
         // 连接 WebSocket
+        websocketService.setUserId(userStore.currentUser!.id)
         websocketService.connect().then(() => {
           // 发送身份标识
           websocketService.send({
             type: 'identify',
             user_id: userStore.currentUser!.id
           })
+          // 注册语音通话服务的WebSocket监听器
+          voiceCallService.registerWebSocketListeners()
           // 监听好友添加事件
           websocketService.on('friend_added', () => {
             console.log('收到好友添加通知，重新加载好友列表')
@@ -343,6 +372,27 @@ export default defineComponent({
             console.log('收到好友请求通知，重新加载好友请求列表')
             loadFriendRequests()
           })
+          // 监听WebSocket重新连接事件
+          // 注意：这里需要修改WebSocketService，添加重新连接事件的触发
+          // 暂时使用一个定时器来模拟，实际应用中应该修改WebSocketService
+          setInterval(() => {
+            // 检查WebSocket连接状态
+            // 如果连接断开，尝试重新连接并发送身份标识
+            if (!websocketService.connectionStatus) {
+              console.log('WebSocket连接断开，尝试重新连接')
+              websocketService.connect().then(() => {
+                console.log('WebSocket重新连接成功，发送身份标识')
+                websocketService.send({
+                  type: 'identify',
+                  user_id: userStore.currentUser!.id
+                })
+                // 重新注册语音通话服务的WebSocket监听器
+                voiceCallService.registerWebSocketListeners()
+              }).catch(err => {
+                console.error('WebSocket重新连接失败:', err)
+              })
+            }
+          }, 10000) // 每10秒检查一次
         }).catch(err => console.warn('WebSocket 连接失败:', err))
         
         // 定期同步消息

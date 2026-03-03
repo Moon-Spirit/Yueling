@@ -16,6 +16,9 @@
       </div>
     </div>
     <div class="chat-actions">
+      <button v-if="selectedContact" class="btn-icon" title="语音通话" @click="$emit('start-voice-call')">
+        <i class="fas fa-phone-alt"></i>
+      </button>
       <button class="btn-icon" title="更多">
         <i class="fas fa-ellipsis-v"></i>
       </button>
@@ -40,7 +43,7 @@ export default defineComponent({
       default: false
     }
   },
-  emits: ['toggle-sidebar'],
+  emits: ['toggle-sidebar', 'start-voice-call'],
   setup() {
     return {
       API_CONFIG

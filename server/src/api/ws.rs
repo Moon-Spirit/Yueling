@@ -151,6 +151,20 @@ async fn handle_websocket(socket: WebSocket, state: AppState) {
                 println!("调试打印: {{来自ws的消息: {v}}}");
                 if let Some(msg_type) = v.get("type").and_then(|x| x.as_str()) {
                     match msg_type {
+                        // 身份标识消息
+                        "identify" => {
+                            // 处理客户端身份标识
+                            if let Some(user_id) = v.get("user_id").and_then(|x| x.as_str()) {
+                                // 将客户端通道映射到用户ID，方便推送定向通知
+                                let mut clients_map = state_clone.clients.lock().unwrap();
+                                // 替换旧的连接，确保用户只有一个活跃连接
+                                clients_map.insert(user_id.to_string(), self_tx.clone());
+                                // 记录客户端ID到用户ID的映射，便于断开时清理
+                                let mut client_user_map = state_clone.client_user_map.lock().unwrap();
+                                client_user_map.insert(client_id_clone.clone(), user_id.to_string());
+                                println!("WebSocket客户端 {} 标识为用户 {}", client_id_clone, user_id);
+                            }
+                        },
                         // 普通消息分支
                         "message"=>{
                             // 提取消息内容
@@ -177,6 +191,62 @@ async fn handle_websocket(socket: WebSocket, state: AppState) {
                                             }
                                         }
                                     }
+                                }
+                            }
+                        },
+                        // 语音通话相关消息
+                        "voice_call_offer" => {
+                            // 提取消息内容
+                            if let Some(receiver_id) = v.get("receiver_id").and_then(|x| x.as_str()) {
+                                if let Some(sender_id) = v.get("sender_id").and_then(|x| x.as_str()) {
+                                    println!("收到语音通话邀请: 从用户 {} 到用户 {}", sender_id, receiver_id);
+                                    // 尝试发送消息给目标用户
+                                    let clients_map = state_clone.clients.lock().unwrap();
+                                    if let Some(sender) = clients_map.get(receiver_id) {
+                                        println!("转发语音通话邀请给用户 {}", receiver_id);
+                                        let _ = sender.send(text.to_string());
+                                    } else {
+                                        println!("目标用户 {} 不在线", receiver_id);
+                                    }
+                                }
+                            }
+                        },
+                        "voice_call_answer" => {
+                            // 提取消息内容
+                            if let Some(receiver_id) = v.get("remote_user_id").and_then(|x| x.as_str()) {
+                                println!("收到语音通话应答，转发给用户 {}", receiver_id);
+                                // 尝试发送消息给目标用户
+                                let clients_map = state_clone.clients.lock().unwrap();
+                                if let Some(sender) = clients_map.get(receiver_id) {
+                                    let _ = sender.send(text.to_string());
+                                } else {
+                                    println!("目标用户 {} 不在线", receiver_id);
+                                }
+                            }
+                        },
+                        "ice_candidate" => {
+                            // 提取消息内容
+                            if let Some(receiver_id) = v.get("remote_user_id").and_then(|x| x.as_str()) {
+                                println!("收到ICE候选，转发给用户 {}", receiver_id);
+                                // 尝试发送消息给目标用户
+                                let clients_map = state_clone.clients.lock().unwrap();
+                                if let Some(sender) = clients_map.get(receiver_id) {
+                                    let _ = sender.send(text.to_string());
+                                } else {
+                                    println!("目标用户 {} 不在线", receiver_id);
+                                }
+                            }
+                        },
+                        "voice_call_end" => {
+                            // 提取消息内容
+                            if let Some(receiver_id) = v.get("remote_user_id").and_then(|x| x.as_str()) {
+                                println!("收到语音通话结束，转发给用户 {}", receiver_id);
+                                // 尝试发送消息给目标用户
+                                let clients_map = state_clone.clients.lock().unwrap();
+                                if let Some(sender) = clients_map.get(receiver_id) {
+                                    let _ = sender.send(text.to_string());
+                                } else {
+                                    println!("目标用户 {} 不在线", receiver_id);
                                 }
                             }
                         },
@@ -219,19 +289,20 @@ async fn handle_websocket(socket: WebSocket, state: AppState) {
         _ = send_task => (),
     }
     
-    // 清理资源：移除客户端映射
-    {
-        let mut clients = state.clients.lock().unwrap();
-        clients.remove(&client_id);
-    }
-
     // 清理用户ID映射（如果存在）
     {
         let mut client_user_map = state.client_user_map.lock().unwrap();
         if let Some(user_id) = client_user_map.remove(&client_id) {
-            let mut clients = state.clients.lock().unwrap();
-            clients.remove(&user_id);
+            // 注意：不要立即移除用户在线状态，因为客户端可能正在重新连接
+            // 让前端在重新连接时通过identify消息重新注册
+            println!("客户端 {} 断开连接，用户 {} 可能正在重新连接", client_id, user_id);
         }
+    }
+
+    // 清理客户端映射
+    {
+        let mut clients = state.clients.lock().unwrap();
+        // 注意：这里不应该移除客户端ID，因为clients_map的键是用户ID，不是客户端ID
     }
 
     println!("WebSocket客户端断开连接: {}", client_id);

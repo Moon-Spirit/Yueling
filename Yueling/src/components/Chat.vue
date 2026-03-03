@@ -26,6 +26,7 @@
           :selectedContact="selectedContact"
           :isMobile="isMobile"
           @toggle-sidebar="toggleSidebar"
+          @start-voice-call="startVoiceCall"
         />
         
         <ChatMessages
@@ -40,6 +41,15 @@
         />
       </main>
     </div>
+    
+    <!-- 语音通话组件 -->
+    <VoiceCall
+      :isActive="showVoiceCall"
+      :currentUser="currentUser"
+      :remoteUser="selectedContact"
+      @close="closeVoiceCall"
+      @call-ended="handleCallEnded"
+    />
   </div>
 </template>
 
@@ -50,6 +60,8 @@ import Sidebar from './Sidebar.vue'
 import ChatHeader from './ChatHeader.vue'
 import ChatMessages from './ChatMessages.vue'
 import ChatInput from './ChatInput.vue'
+import VoiceCall from './VoiceCall.vue'
+import { voiceCallService } from '../services/voice'
 import { useMobile } from '../hooks'
 
 export default defineComponent({
@@ -58,7 +70,8 @@ export default defineComponent({
     Sidebar,
     ChatHeader,
     ChatMessages,
-    ChatInput
+    ChatInput,
+    VoiceCall
   },
   props: {
     isActive: {
@@ -87,10 +100,11 @@ export default defineComponent({
     }
   },
   emits: ['logout', 'show-add-friend', 'show-friend-requests', 'show-profile', 'select-contact', 'send-message', 'toggle-theme', 'avatar-change'],
-  setup(_, { emit }) {
+  setup(props, { emit }) {
     const selectedContact = ref<Contact | null>(null)
     const { isMobile } = useMobile()
     const showSidebar = ref(true)
+    const showVoiceCall = ref(false)
 
     const toggleSidebar = () => {
       showSidebar.value = !showSidebar.value
@@ -129,10 +143,45 @@ export default defineComponent({
       emit('avatar-change', file)
     }
 
+    const startVoiceCall = async () => {
+      if (!props.currentUser || !selectedContact.value) return
+
+      try {
+        await voiceCallService.initiateCall(props.currentUser.id, selectedContact.value.id)
+        showVoiceCall.value = true
+      } catch (error) {
+        console.error('Failed to start voice call:', error)
+      }
+    }
+
+    const closeVoiceCall = () => {
+      showVoiceCall.value = false
+    }
+
+    const handleCallEnded = () => {
+      showVoiceCall.value = false
+    }
+
+    const handleVoiceCallStateChange = (state: any) => {
+      // 当收到语音通话邀请时，自动显示语音通话组件
+      if (state.status === 'connecting' && state.remoteUserId) {
+        // 查找对应的联系人
+        const contact = [...props.friends, ...props.groups].find(c => c.id === state.remoteUserId)
+        if (contact) {
+          selectedContact.value = contact
+          showVoiceCall.value = true
+        }
+      }
+    }
+
+    // 监听语音通话服务的状态变化
+    voiceCallService.onStateChange(handleVoiceCallStateChange)
+
     return {
       selectedContact,
       isMobile,
       showSidebar,
+      showVoiceCall,
       toggleSidebar,
       selectContact,
       sendMessage,
@@ -141,7 +190,10 @@ export default defineComponent({
       showAddFriend,
       showFriendRequests,
       showProfile,
-      handleAvatarChange
+      handleAvatarChange,
+      startVoiceCall,
+      closeVoiceCall,
+      handleCallEnded
     }
   }
 })
