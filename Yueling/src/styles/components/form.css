@@ -1,167 +1,65 @@
-/* 现代化登录/注册盒子 */
 .login-box, .register-box {
-    background: var(--bg-primary);
-    backdrop-filter: blur(20px);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-xl), var(--shadow-glow);
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
     padding: 48px;
     width: 100%;
-    max-width: 420px;
-    border: 1px solid var(--border-color);
-    animation: slideUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 400px;
+    animation: fadeIn 0.4s ease;
     position: relative;
     overflow: hidden;
-    transition: var(--transition-slow);
+    transition: var(--transition);
 }
 
 .login-box:hover, .register-box:hover {
-    box-shadow: 
-        var(--shadow-xl),
-        var(--shadow-glow),
-        0 0 40px rgba(99, 102, 241, 0.2);
-    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
 }
 
-/* 盒子背景装饰 */
-.login-box::before, .register-box::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-        radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
-    pointer-events: none;
-    animation: backgroundShift 15s ease infinite;
-    background-size: 200% 200%;
-}
-
-/* 登录/注册动画 */
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px) scale(0.95);
-        box-shadow: var(--shadow-md);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        box-shadow: var(--shadow-xl), var(--shadow-glow);
-    }
-}
-
-@keyframes backgroundShift {
-    0% { background-position: 0% 50%, 0% 50%, 0% 50%; }
-    33% { background-position: 100% 50%, 50% 100%, 50% 0%; }
-    66% { background-position: 50% 100%, 100% 50%, 100% 100%; }
-    100% { background-position: 0% 50%, 0% 50%, 0% 50%; }
-}
-
-/* 现代化Logo设计 */
 .logo {
     text-align: center;
-    margin-bottom: 36px;
+    margin-bottom: 32px;
     position: relative;
-    animation: logoSlideIn 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: fadeIn 0.5s ease;
 }
 
 .logo i {
-    font-size: 72px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%, var(--accent-color) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 16px;
-    animation: float 4s ease-in-out infinite, glow 3s ease-in-out infinite alternate;
-    filter: drop-shadow(0 6px 12px rgba(99, 102, 241, 0.4));
+    font-size: 48px;
+    color: var(--primary-color);
+    margin-bottom: 12px;
     display: inline-block;
     transition: var(--transition);
 }
 
 .logo i:hover {
-    transform: scale(1.1) rotate(5deg);
-    filter: drop-shadow(0 8px 16px rgba(99, 102, 241, 0.6));
+    transform: scale(1.05);
 }
 
 .logo h1 {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    font-size: 36px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    animation: textReveal 1.2s ease-out;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: var(--text-primary);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+    animation: fadeIn 0.6s ease;
 }
 
-/* Logo浮动动画 */
-@keyframes float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    33% { transform: translateY(-10px) rotate(2deg); }
-    66% { transform: translateY(-5px) rotate(-2deg); }
-}
-
-/* Logo发光动画 */
-@keyframes glow {
-    from {
-        filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3));
-    }
-    to {
-        filter: drop-shadow(0 8px 16px rgba(99, 102, 241, 0.6));
-    }
-}
-
-/* Logo滑入动画 */
-@keyframes logoSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.8);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* 文字渐入动画 */
-@keyframes textReveal {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-        filter: blur(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-        filter: blur(0);
-    }
-}
-
-/* 现代化表单样式 */
 .form {
     margin-bottom: 24px;
 }
 
 .form-group {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     position: relative;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 10px;
-    font-weight: 600;
+    margin-bottom: 8px;
+    font-weight: 500;
     color: var(--text-primary);
     font-size: 14px;
-    letter-spacing: 0.3px;
     transition: var(--transition);
 }
 
-/* 现代化输入框样式 */
 .input-wrapper {
     position: relative;
     display: flex;
@@ -178,12 +76,12 @@
     right: 4px;
     top: 50%;
     transform: translateY(-50%);
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     padding: 8px;
-    border-radius: 10px;
+    border-radius: 8px;
     background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
+    border: none;
     color: var(--text-primary);
     transition: var(--transition);
     cursor: pointer;
@@ -195,9 +93,6 @@
 .input-wrapper.with-button .search-btn:hover {
     background: var(--primary-color);
     color: white;
-    transform: translateY(-50%) scale(1.05);
-    box-shadow: var(--shadow-md), 0 0 15px rgba(99, 102, 241, 0.4);
-    border-color: var(--primary-color);
 }
 
 .vertical-theme-toggle {
@@ -218,22 +113,22 @@
 .input-wrapper input,
 .input-wrapper textarea {
     width: 100%;
-    padding: 16px 16px 16px 48px;
-    border: 2px solid var(--border-color);
-    border-radius: 16px;
-    font-size: 15px;
+    padding: 14px 14px 14px 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 16px;
     transition: var(--transition);
     background: var(--bg-secondary);
     color: var(--text-primary);
     font-family: inherit;
     line-height: 1.5;
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
     position: relative;
     z-index: 1;
 }
 
 .input-wrapper.with-button input {
-    padding-right: 60px;
+    padding-right: 52px;
 }
 
 .input-wrapper textarea {
@@ -241,102 +136,43 @@
     min-height: 40px;
     max-height: 120px;
     overflow: auto;
-    padding: 16px;
+    padding: 14px;
 }
 
 .input-wrapper i {
     position: absolute;
-    left: 16px;
-    top: 12px;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
     color: var(--text-muted);
-    font-size: 18px;
+    font-size: 16px;
     transition: var(--transition);
     pointer-events: none;
     z-index: 2;
 }
 
-/* 输入框背景装饰 */
-.input-wrapper::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color));
-    border-radius: 0 0 16px 16px;
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.3s ease;
-    z-index: 0;
-}
-
-.input-wrapper:focus-within::before {
-    transform: scaleX(1);
-}
-
-/* 输入框聚焦效果 */
 .input-wrapper input:focus,
 .input-wrapper textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    background: var(--bg-primary);
-    box-shadow: 
-        0 0 0 4px rgba(99, 102, 241, 0.1),
-        var(--shadow-md),
-        0 0 20px rgba(99, 102, 241, 0.1);
-    transform: translateY(-1px);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 3px rgba(38, 105, 255, 0.08);
 }
 
 .input-wrapper input:focus + i,
 .input-wrapper textarea:focus + i {
     color: var(--primary-color);
-    transform: scale(1.2) translateY(-2px);
-    filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.4));
-    animation: iconPulse 0.5s ease;
 }
 
-/* 输入框动画效果 */
-.input-wrapper input,
-.input-wrapper textarea {
-    animation: inputSlideIn 0.5s ease-out;
-}
-
-@keyframes inputSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-        filter: blur(5px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-        filter: blur(0);
-    }
-}
-
-@keyframes iconPulse {
-    0% {
-        transform: scale(1) translateY(0);
-    }
-    50% {
-        transform: scale(1.3) translateY(-3px);
-    }
-    100% {
-        transform: scale(1.1) translateY(-2px);
-    }
-}
-
-/* 密码切换按钮 */
 .toggle-password {
     position: absolute;
-    right: 16px;
+    right: 14px;
     color: var(--text-muted);
     cursor: pointer;
     font-size: 16px;
     transition: var(--transition);
-    padding: 8px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 6px;
 }
 
 .toggle-password:hover {
@@ -344,13 +180,12 @@
     background: var(--bg-tertiary);
 }
 
-/* 现代化按钮样式 */
 .btn {
-    padding: 16px 32px;
+    padding: 12px 24px;
     border: none;
-    border-radius: 16px;
+    border-radius: 8px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
     display: inline-flex;
@@ -359,88 +194,30 @@
     position: relative;
     overflow: hidden;
     user-select: none;
-    backdrop-filter: blur(10px);
-    gap: 10px;
-    box-shadow: var(--shadow-md);
-    animation: buttonSlideIn 0.6s ease-out;
+    gap: 8px;
+    box-shadow: none;
+    animation: fadeIn 0.4s ease;
 }
 
-/* 按钮渐变效果 */
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 0;
-}
-
-.btn:hover::before {
-    width: 300px;
-    height: 300px;
-}
-
-.btn:active::before {
-    width: 400px;
-    height: 400px;
-}
-
-.btn span, .btn i {
-    position: relative;
-    z-index: 1;
-}
-
-/* 主按钮样式 */
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, var(--accent-color) 100%);
+    background: var(--primary-color);
     color: white;
     width: 100%;
-    box-shadow: 
-        0 6px 20px rgba(99, 102, 241, 0.4),
-        var(--shadow-md),
-        0 0 30px rgba(99, 102, 241, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
 }
 
 .btn-primary:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 
-        0 12px 35px rgba(99, 102, 241, 0.5),
-        var(--shadow-lg),
-        0 0 40px rgba(99, 102, 241, 0.2);
-    filter: brightness(1.08);
+    background: #1a5af5;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:active {
-    transform: translateY(0) scale(0.98);
-    box-shadow: 
-        0 8px 25px rgba(99, 102, 241, 0.4),
-        var(--shadow-md),
-        0 0 25px rgba(99, 102, 241, 0.1);
+    transform: translateY(0);
+    box-shadow: none;
 }
 
-/* 按钮动画 */
-@keyframes buttonSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(15px) scale(0.95);
-        box-shadow: var(--shadow-sm);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        box-shadow: var(--shadow-md);
-    }
-}
-
-/* 按钮加载状态 */
 .btn.loading {
     opacity: 0.8;
     cursor: not-allowed;
@@ -448,84 +225,76 @@
 
 .btn.loading::after {
     content: '';
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    margin-left: 10px;
+    margin-left: 8px;
 }
 
-/* 辅助按钮样式 */
 .btn-secondary {
-    background: var(--bg-secondary);
+    background: var(--bg-tertiary);
     color: var(--text-primary);
-    border: 2px solid var(--border-color);
-    padding: 12px;
-    border-radius: 50%;
-    width: 52px;
-    height: 52px;
-    box-shadow: var(--shadow-sm);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    min-width: 80px;
+    box-shadow: none;
     transition: var(--transition);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .btn-secondary:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--primary-color);
-    transform: scale(1.1);
-    box-shadow: var(--shadow-md), 0 0 20px rgba(99, 102, 241, 0.1);
-    color: var(--primary-color);
+    background: var(--border-color);
+    transform: translateY(-1px);
+    color: var(--text-primary);
 }
 
 .btn-secondary:active {
-    transform: scale(0.95);
-    box-shadow: var(--shadow-sm);
+    transform: translateY(0);
 }
 
-/* 图标按钮样式 */
 .btn-icon {
-    background: var(--bg-primary);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     cursor: pointer;
-    font-size: 18px;
-    padding: 12px;
-    border-radius: 12px;
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 8px;
     transition: var(--transition);
     position: relative;
     overflow: hidden;
     user-select: none;
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
 }
 
 .btn-icon:hover {
-    background: var(--primary-color);
-    color: white;
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: var(--shadow-md);
+    background: var(--bg-tertiary);
+    color: var(--primary-color);
+    transform: translateY(-1px);
     border-color: var(--primary-color);
 }
 
 .btn-icon:active {
-    transform: translateY(0) scale(0.95);
+    transform: translateY(0);
 }
 
-/* 表单选项样式 */
 .form-options {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
     font-size: 14px;
-    animation: formOptionsSlideIn 0.7s ease-out;
+    animation: fadeIn 0.5s ease;
 }
 
-/* 现代化复选框样式 */
 .checkbox {
     display: flex;
     align-items: center;
@@ -533,16 +302,15 @@
     color: var(--text-secondary);
     position: relative;
     user-select: none;
-    gap: 10px;
+    gap: 8px;
     transition: var(--transition);
-    padding: 8px 12px;
-    border-radius: 12px;
+    padding: 6px 10px;
+    border-radius: 4px;
 }
 
 .checkbox:hover {
     background: var(--bg-tertiary);
-    color: var(--primary-color);
-    transform: translateX(4px);
+    color: var(--text-primary);
 }
 
 .checkbox input {
@@ -554,71 +322,37 @@
     cursor: pointer;
 }
 
-.checkbox input:hover {
-    transform: scale(1.2);
-}
-
-.checkbox:hover span {
-    color: var(--primary-color);
-    font-weight: 600;
-}
-
-/* 链接样式 */
 .forgot-password, .form-footer a {
     color: var(--primary-color);
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 500;
     transition: var(--transition);
     position: relative;
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
     overflow: hidden;
 }
 
-.forgot-password::before, .form-footer a::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    transform: scaleX(0);
-    transform-origin: right;
-    transition: transform 0.3s ease;
-}
-
 .forgot-password:hover, .form-footer a:hover {
-    color: var(--secondary-color);
-    background: rgba(99, 102, 241, 0.1);
-    transform: translateX(4px) translateY(-1px);
-    box-shadow: var(--shadow-sm);
+    color: var(--primary-color);
+    background: rgba(38, 105, 255, 0.06);
 }
 
-.forgot-password:hover::before, .form-footer a:hover::before {
-    transform: scaleX(1);
-    transform-origin: left;
-}
-
-/* 表单页脚 */
 .form-footer {
     text-align: center;
     color: var(--text-secondary);
     font-size: 14px;
     padding: 16px;
-    background: var(--bg-secondary);
-    border-radius: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
     margin-top: 24px;
-    animation: formFooterSlideIn 0.8s ease-out;
-    border: 1px solid var(--border-color);
+    animation: fadeIn 0.5s ease;
+    border: none;
     transition: var(--transition);
 }
 
 .form-footer:hover {
     background: var(--bg-tertiary);
-    border-color: var(--primary-color);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
 }
 
 .form-footer p {
@@ -626,52 +360,91 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
 }
 
-/* 动画效果 */
-@keyframes formOptionsSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.form-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
 }
 
-@keyframes formFooterSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(15px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+.form-buttons .btn {
+    width: auto;
+    min-width: 100px;
 }
 
-/* 加载动画 */
+.friend-request-item {
+    padding: 16px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 8px;
+    transition: var(--transition);
+}
+
+.friend-request-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.friend-request-item strong {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.btn-accept {
+    background: var(--success-color);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-accept:hover {
+    background: #2db14a;
+    transform: translateY(-1px);
+}
+
+.btn-reject {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-reject:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
 
-/* 深色模式表单样式 */
 [data-theme="dark"] .login-box,
 [data-theme="dark"] .register-box {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    box-shadow: 
-        var(--shadow-xl),
-        var(--shadow-glow),
-        0 0 40px rgba(147, 197, 253, 0.1);
+    border: none;
+    box-shadow: var(--shadow-sm);
 }
 
 [data-theme="dark"] .input-wrapper input,
 [data-theme="dark"] .input-wrapper textarea {
-    background: var(--bg-tertiary);
+    background: var(--bg-secondary);
     border-color: var(--border-color);
     color: var(--text-primary);
 }

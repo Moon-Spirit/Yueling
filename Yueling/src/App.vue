@@ -449,5 +449,4 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 样式已存在于全局 styles.css 中 */
 </style>

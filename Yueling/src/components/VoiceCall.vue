@@ -231,9 +231,9 @@ export default defineComponent({
   transform: translate(-50%, -50%);
   width: 90%;
   max-width: 400px;
-  background: var(--bg-primary);
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
   z-index: 1000;
   opacity: 0;
   visibility: hidden;
@@ -249,27 +249,27 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-color);
-  border-radius: 20px 20px 0 0;
+  border-radius: 12px 12px 0 0;
   background: var(--bg-secondary);
 }
 
 .voice-call-header h3 {
   margin: 0;
   color: var(--text-primary);
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .close-btn {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
+  padding: 6px;
+  border-radius: 8px;
   transition: all 0.2s ease;
 }
 
@@ -279,20 +279,20 @@ export default defineComponent({
 }
 
 .voice-call-body {
-  padding: 30px 20px;
+  padding: 24px 20px;
 }
 
 .call-status {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 30px;
-  gap: 10px;
+  margin-bottom: 24px;
+  gap: 8px;
 }
 
 .status-indicator {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
@@ -311,7 +311,7 @@ export default defineComponent({
 
 .status-text {
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -319,22 +319,23 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 30px;
-  gap: 20px;
+  margin-bottom: 24px;
+  gap: 16px;
 }
 
 .avatar {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: var(--bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 32px;
-  font-weight: 700;
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 500;
+  box-shadow: none;
+  border: 1px solid var(--border-color);
 }
 
 .caller-details {
@@ -342,10 +343,10 @@ export default defineComponent({
 }
 
 .caller-details h4 {
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
   color: var(--text-primary);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 500;
 }
 
 .caller-details p {
@@ -355,17 +356,17 @@ export default defineComponent({
 }
 
 .network-quality {
-  background: var(--bg-secondary);
-  padding: 20px;
-  border-radius: 12px;
+  background: var(--bg-primary);
+  padding: 16px;
+  border-radius: 8px;
   border: 1px solid var(--border-color);
 }
 
 .network-quality h5 {
-  margin: 0 0 15px 0;
+  margin: 0 0 12px 0;
   color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -373,65 +374,65 @@ export default defineComponent({
 .quality-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .metric {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: var(--bg-primary);
-  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
   border: 1px solid var(--border-color);
 }
 
 .metric .label {
   color: var(--text-secondary);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .metric .value {
   color: var(--text-primary);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .connection-mode-switch {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .connection-mode-switch label {
   color: var(--text-secondary);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .connection-mode-switch select {
   padding: 8px 12px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .connection-mode-switch select:hover {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(38, 105, 255, 0.06);
 }
 
 .voice-call-footer {
-  padding: 20px;
+  padding: 16px 20px;
   border-top: 1px solid var(--border-color);
-  border-radius: 0 0 20px 20px;
+  border-radius: 0 0 12px 12px;
   background: var(--bg-secondary);
   display: flex;
   justify-content: center;
@@ -441,23 +442,23 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 12px 30px;
+  gap: 8px;
+  padding: 10px 24px;
   background: var(--error-color);
   color: white;
   border: none;
-  border-radius: 25px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: none;
 }
 
 .end-call-btn:hover {
-  background: #dc2626;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+  background: #e6352b;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .end-call-btn:active {
@@ -479,7 +480,7 @@ export default defineComponent({
   }
 
   .voice-call-header {
-    padding: 16px;
+    padding: 14px 16px;
   }
 
   .voice-call-body {
@@ -487,21 +488,21 @@ export default defineComponent({
   }
 
   .caller-info {
-    gap: 16px;
+    gap: 12px;
   }
 
   .avatar {
-    width: 64px;
-    height: 64px;
-    font-size: 24px;
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
   }
 
   .caller-details h4 {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .network-quality {
-    padding: 16px;
+    padding: 14px;
   }
 
   .quality-metrics {
@@ -509,11 +510,11 @@ export default defineComponent({
   }
 
   .voice-call-footer {
-    padding: 16px;
+    padding: 14px 16px;
   }
 
   .end-call-btn {
-    padding: 10px 24px;
+    padding: 10px 20px;
     font-size: 14px;
   }
 }
