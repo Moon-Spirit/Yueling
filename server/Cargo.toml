@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-dav-server = "0.8.0"
+dav-server = "0.11.0"
 libp2p = "0.56.0"
 quinn = "0.11.9"
 rcgen = "0.14.7"
 uuid = { version = "1.20.0", features = ["v4"] }
 tokio = { version = "1.49", features = ["full"] }
 anyhow = "1.0.75"
-bcrypt = "0.18.0"
+bcrypt = "0.19.1"
 rusqlite = { version = "0.38.0", features = ["bundled"] }
 serde = "1.0.228"
 axum = { version = "0.8.8", features = ["ws", "multipart"] }
@@ -19,11 +19,11 @@ tower-http = { version = "0.6.8", features = ["cors", "compression-gzip", "trace
 thiserror = "2.0.18"
 serde_json = "1.0.149"
 futures-util = "0.3.31"
-tokio-tungstenite = "0.28.0"
+tokio-tungstenite = "0.29.0"
 aes-gcm = "0.10.3"
-rand = "0.8.5"
-rand_chacha = "0.3.0"
-sha2 = "0.10.8"
+rand = "0.10.1"
+rand_chacha = "0.10.0"
+sha2 = "0.11.0"
 hex = "0.4.3"
 base64 = "0.22.0"
 mime_guess = "2.0.4"
